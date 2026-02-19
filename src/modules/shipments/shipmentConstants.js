@@ -316,16 +316,25 @@ export const SHIPPING_TYPE_OPTIONS = [
   { value: 'ZC', label: 'ZC — ยกเลิกเส้นทาง' },
 ];
 
-// ==================== 12 ROUTE OPTIONS ====================
+// ==================== 22 ROUTE OPTIONS ====================
 export const ROUTE_OPTIONS = [
   { value: '010001', label: '010001 — ท่าเรือแหลมฉบัง → ท่าเรือกรุงเทพ (121 km)', distance: 121 },
   { value: '010002', label: '010002 — ท่าเรือกรุงเทพ → ท่าเรือแหลมฉบัง (120 km)', distance: 120 },
   { value: '010003', label: '010003 — ท่าเรือแหลมฉบัง → ท่าเรือ NPM (765 km)', distance: 765 },
+  { value: '010004', label: '010004 — LCH → นิคมอมตะนคร → LCH (90 km)', distance: 90 },
   { value: '010005', label: '010005 — BTC → ไทยเบฟ → BTC (311 km)', distance: 311 },
   { value: '010006', label: '010006 — BTC → ไทยเบฟ → SCSC → BTC (413 km)', distance: 413 },
   { value: '010007', label: '010007 — BTC → LCH → ไทยเบฟ → SCSC → BTC (529 km)', distance: 529 },
+  { value: '010008', label: '010008 — BTC → สระบุรี → BTC (280 km)', distance: 280 },
+  { value: '010009', label: '010009 — BTC → ลาดกระบัง → BTC (145 km)', distance: 145 },
+  { value: '010010', label: '010010 — BTC → SCG (บางซื่อ) → BTC (190 km)', distance: 190 },
   { value: '010011', label: '010011 — BTC → บุญรอดฯ → BTC (231 km)', distance: 231 },
+  { value: '010012', label: '010012 — BTC → ปทุมธานี → BTC (200 km)', distance: 200 },
+  { value: '010013', label: '010013 — BTC → นครปฐม → BTC (260 km)', distance: 260 },
   { value: '010014', label: '010014 — BTC → มหพันธ์ (ลพบุรี) → BTC (397 km)', distance: 397 },
+  { value: '010015', label: '010015 — BTC → ราชบุรี → BTC (310 km)', distance: 310 },
+  { value: '010016', label: '010016 — BTC → สมุทรสาคร → BTC (175 km)', distance: 175 },
+  { value: '010020', label: '010020 — LCH → Map Ta Phut → LCH (95 km)', distance: 95 },
   { value: '010024', label: '010024 — BTC → มิชลิน (หนองแค) → BTC (300 km)', distance: 300 },
   { value: '010027', label: '010027 — BTC → มิชลิน (หนองรี) → BTC (55 km)', distance: 55 },
   { value: '010029', label: '010029 — BTC → LCH (ตู้เปล่า) (124 km)', distance: 124 },
@@ -441,6 +450,7 @@ export const YARD_OPTIONS = [
   { value: '1401', label: '1401 — Bang Na KM.4' },
   { value: '1402', label: '1402 — Bang Na KM.4.5' },
   { value: '1403', label: '1403 — Bang Na KM.22' },
+  { value: '1405', label: '1405 — Toyota Gateway' },
   { value: '1406', label: '1406 — Nissan' },
   { value: '1408', label: '1408 — YARD NO. ATL KM.19' },
   { value: '1410', label: '1410 — อู่ CIMC อมตะซิตี้' },

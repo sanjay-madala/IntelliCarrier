@@ -41,7 +41,9 @@ export default function ShipmentList() {
 
   const kpis = useMemo(() => ({
     total: shipments.length,
+    pendingReview: shipments.filter(s => s.status === 'PENDING_REVIEW').length,
     open: shipments.filter(s => s.status === 'OPEN').length,
+    shipmentCreated: shipments.filter(s => s.status === 'SHIPMENT_CREATED').length,
     dispatched: shipments.filter(s => s.status === 'DISPATCHED').length,
     reportIn: shipments.filter(s => s.status === 'REPORT_IN').length,
     completed: shipments.filter(s => s.status === 'COMPLETED').length,
@@ -286,7 +288,9 @@ export default function ShipmentList() {
       {/* KPI Strip */}
       <div className="flex gap-4 overflow-x-auto pb-1">
         <KPITile label={t('shipments.kpi.total')} count={kpis.total} active={!filterStatus} onClick={() => setFilterStatus(null)} />
+        <KPITile icon="⏳" label={t('shipments.kpi.pendingReview')} count={kpis.pendingReview} color="text-purple-600" active={filterStatus === 'PENDING_REVIEW'} onClick={() => setFilterStatus('PENDING_REVIEW')} />
         <KPITile icon="🟡" label={t('shipments.kpi.open')} count={kpis.open} color="text-yellow-600" active={filterStatus === 'OPEN'} onClick={() => setFilterStatus('OPEN')} />
+        <KPITile icon="📋" label={t('shipments.kpi.shipmentCreated')} count={kpis.shipmentCreated} color="text-indigo-600" active={filterStatus === 'SHIPMENT_CREATED'} onClick={() => setFilterStatus('SHIPMENT_CREATED')} />
         <KPITile icon="🚀" label={t('shipments.kpi.dispatched')} count={kpis.dispatched} color="text-blue-600" active={filterStatus === 'DISPATCHED'} onClick={() => setFilterStatus('DISPATCHED')} />
         <KPITile icon="📥" label={t('shipments.kpi.reportIn')} count={kpis.reportIn} color="text-orange-600" active={filterStatus === 'REPORT_IN'} onClick={() => setFilterStatus('REPORT_IN')} />
         <KPITile icon="✅" label={t('shipments.kpi.completed')} count={kpis.completed} color="text-green-600" active={filterStatus === 'COMPLETED'} onClick={() => setFilterStatus('COMPLETED')} />

@@ -226,7 +226,7 @@ export default function ShipmentForm({ shipment, selectedFO, channel, onBack, is
   };
 
   const handleTruckSelect = (truck) => {
-    setForm(f => ({ ...f, truck: truck.plate, trailer: truck.trailer, vehicleNo: truck.vehicleNo }));
+    setForm(f => ({ ...f, truck: truck.plate, trailer: truck.trailer, vehicleNo: truck.vehicleNo, truckType: truck.type || '' }));
     setShowTruckSearch(false);
     setShowFleetSuggest(false);
   };
@@ -234,11 +234,11 @@ export default function ShipmentForm({ shipment, selectedFO, channel, onBack, is
   // Bidirectional truck/vehicle lookup
   const lookupByPlate = (plate) => {
     const found = truckMaster.find(t => t.plate === plate);
-    if (found) setForm(f => ({ ...f, truck: found.plate, trailer: found.trailer || '', vehicleNo: found.vehicleNo }));
+    if (found) setForm(f => ({ ...f, truck: found.plate, trailer: found.trailer || '', vehicleNo: found.vehicleNo, truckType: found.type || '' }));
   };
   const lookupByVehicleNo = (vNo) => {
     const found = truckMaster.find(t => t.vehicleNo === vNo);
-    if (found) setForm(f => ({ ...f, truck: found.plate, trailer: found.trailer || '', vehicleNo: found.vehicleNo }));
+    if (found) setForm(f => ({ ...f, truck: found.plate, trailer: found.trailer || '', vehicleNo: found.vehicleNo, truckType: found.type || '' }));
   };
 
   const handleEmployeeSelect = (emp) => {
@@ -638,6 +638,7 @@ export default function ShipmentForm({ shipment, selectedFO, channel, onBack, is
             </div>
           </div>
           <FormField label={t('shipmentForm.trailerPlate')} value={form.trailer} disabled />
+          <FormField label="Truck Type" value={form.truckType || '—'} disabled />
           <div>
             <label className="block text-xs font-medium text-text-sec mb-1">{t('shipmentForm.vehicleNoLabel')}</label>
             <div className="flex">

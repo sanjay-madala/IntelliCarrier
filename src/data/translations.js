@@ -128,7 +128,9 @@ export const translations = {
       export: 'Export',
       kpi: {
         total: 'Total Shipments',
+        pendingReview: 'Pending Review',
         open: 'Open',
+        shipmentCreated: 'Shipment Created',
         dispatched: 'Dispatched',
         reportIn: 'Report-In',
         completed: 'Completed',
@@ -1227,7 +1229,9 @@ export const translations = {
       export: 'ส่งออก',
       kpi: {
         total: 'งานขนส่งทั้งหมด',
+        pendingReview: 'รอตรวจสอบ',
         open: 'เปิด',
+        shipmentCreated: 'สร้างงานขนส่งแล้ว',
         dispatched: 'จัดส่งแล้ว',
         reportIn: 'รายงานเข้า',
         completed: 'เสร็จสิ้น',
