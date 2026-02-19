@@ -52,14 +52,8 @@ export default function ShipmentForm({ shipment, selectedFO, channel, onBack, is
   const { dispatch } = useApp();
   const pc = pCfg(channel?.product || selectedFO?.product || shipment?.product || 'LPG');
 
-  // Resolve driver role labels with translations — add extra roles for site 0636
-  const currentSite = form.site || selectedFO?.site || '';
-  const DRIVER_ROLES_KEYS = currentSite === '0636'
-    ? [...BASE_DRIVER_ROLES_KEYS, ...EXTRA_0636_ROLES]
-    : BASE_DRIVER_ROLES_KEYS;
-  const DRIVER_ROLES = DRIVER_ROLES_KEYS.map(r => ({ ...r, label: t(r.labelKey) }));
-
   // ==================== FORM STATE ====================
+  const initialSite = channel?.site || selectedFO?.site || shipment?.site || '';
   const [form, setForm] = useState({
     shipmentNo: shipment?.id || 'Auto-generated',
     bu: channel?.bu || selectedFO?.bu || shipment?.bu || '',
@@ -88,6 +82,12 @@ export default function ShipmentForm({ shipment, selectedFO, channel, onBack, is
     // Custom route
     customStage1: '', customStage2: '', customStage3: '', customStage4: '',
   });
+
+  // Resolve driver role labels — add extra roles for site 0636
+  const DRIVER_ROLES_KEYS = (form.site || initialSite) === '0636'
+    ? [...BASE_DRIVER_ROLES_KEYS, ...EXTRA_0636_ROLES]
+    : BASE_DRIVER_ROLES_KEYS;
+  const DRIVER_ROLES = DRIVER_ROLES_KEYS.map(r => ({ ...r, label: t(r.labelKey) }));
 
   const [drivers, setDrivers] = useState(
     DRIVER_ROLES.map(r => ({
