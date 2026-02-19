@@ -12,18 +12,14 @@ import EmployeeSearchModal from './EmployeeSearchModal';
 import StageSwapModal from './StageSwapModal';
 import {
   pCfg, BU_OPTIONS, PRODUCT_TYPE_OPTIONS, SITE_OPTIONS, PRODUCT_SUBTYPE_OPTIONS,
-  SHIPMENT_TYPE_OPTIONS, SHIPPING_TYPE_OPTIONS, ROUTE_OPTIONS, CONNECTION_POINTS,
+  SHIPMENT_TYPE_OPTIONS, SHIPPING_TYPE_OPTIONS, ROUTE_OPTIONS, CONNECTION_POINTS, ROUTE_STAGES,
   YARD_OPTIONS, NGV_QUALITY_STATIONS, SCA_TRANSPORT_FEE_OPTIONS, SCA_TRIP_PAY_OPTIONS,
   APPROVED_FOS, SCA_POSITIONS, SAMPLE_CAR_CARRIER_VEHICLES,
 } from './shipmentConstants';
 import { trucks as truckMaster } from '../../data/mockData';
 
 // ==================== DEFAULT STAGES ====================
-const defaultStages = [
-  { stage: 0, depNo: '—', departure: '—', destNo: '010007', destination: 'ท่าเรือบางปะกง', type: 'First', plannedArr: '', plannedDep: '', distance: 0 },
-  { stage: 1, depNo: '010007', departure: 'ท่าเรือบางปะกง', destNo: '010025', destination: 'ไทยเบฟ (บางบาล)', type: 'Transport', plannedArr: '', plannedDep: '', distance: 151 },
-  { stage: 2, depNo: '010025', departure: 'ไทยเบฟ (บางบาล)', destNo: '010007', destination: 'ท่าเรือบางปะกง', type: 'Loading Transfer', plannedArr: '', plannedDep: '', distance: 160 },
-];
+const defaultStages = [];
 
 // ==================== DRIVER/HELPER ROWS ====================
 const BASE_DRIVER_ROLES_KEYS = [
@@ -95,11 +91,25 @@ export default function ShipmentForm({ shipment, selectedFO, channel, onBack, is
     }))
   );
 
-  const [stages, setStages] = useState(shipment?.stages?.map((s, i) => ({
-    stage: i, depNo: '', departure: s.from || '', destNo: '', destination: s.to || '',
-    type: i === 0 ? 'First' : s.type || 'Transport',
-    plannedArr: '', plannedDep: '', distance: s.distance || 0,
-  })) || [...defaultStages]);
+  const initialRoute = selectedFO?.route || shipment?.route || '';
+  const [stages, setStages] = useState(() => {
+    if (shipment?.stages?.length) {
+      return shipment.stages.map((s, i) => ({
+        stage: i, depNo: '', departure: s.from || '', destNo: '', destination: s.to || '',
+        type: i === 0 ? 'First' : s.type || 'Transport',
+        plannedArr: '', plannedDep: '', distance: s.distance || 0,
+      }));
+    }
+    const routeStages = ROUTE_STAGES[initialRoute];
+    if (routeStages) {
+      return routeStages.map((rs, i) => ({
+        stage: i, depNo: rs.depNo, departure: rs.departure, destNo: rs.destNo,
+        destination: rs.destination, type: rs.type, distance: rs.distance,
+        plannedArr: '', plannedDep: '',
+      }));
+    }
+    return [];
+  });
 
   const [showCustomRoute, setShowCustomRoute] = useState(false);
   const [customRouteStages, setCustomRouteStages] = useState([
@@ -172,7 +182,20 @@ export default function ShipmentForm({ shipment, selectedFO, channel, onBack, is
 
   const handleRouteChange = (routeId) => {
     updateForm('route', routeId);
-    setShowCustomRoute(routeId === 'CUSTOM');
+    if (routeId === 'CUSTOM') {
+      setShowCustomRoute(true);
+    } else {
+      setShowCustomRoute(false);
+      // Auto-populate stages from route master
+      const routeStages = ROUTE_STAGES[routeId];
+      if (routeStages) {
+        setStages(routeStages.map((rs, i) => ({
+          stage: i, depNo: rs.depNo, departure: rs.departure, destNo: rs.destNo,
+          destination: rs.destination, type: rs.type, distance: rs.distance,
+          plannedArr: '', plannedDep: '',
+        })));
+      }
+    }
   };
 
   const handleTruckSelect = (truck) => {

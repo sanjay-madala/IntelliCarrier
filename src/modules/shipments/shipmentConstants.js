@@ -333,6 +333,57 @@ export const ROUTE_OPTIONS = [
   { value: 'CUSTOM', label: '+ Create Custom Route...', distance: 0 },
 ];
 
+// ==================== ROUTE → STAGES MAPPING ====================
+// BTC = ท่าเรือบางปะกง (010007), LCH = แหลมฉบัง (010102)
+export const ROUTE_STAGES = {
+  '010001': [ // LCH → ท่าเรือกรุงเทพ (121 km)
+    { depNo: '010102', departure: 'LCH (แหลมฉบัง)', destNo: '010005', destination: 'ท่าเรือกรุงเทพ', type: 'First', distance: 121 },
+  ],
+  '010002': [ // ท่าเรือกรุงเทพ → LCH (120 km)
+    { depNo: '010005', departure: 'ท่าเรือกรุงเทพ', destNo: '010102', destination: 'LCH (แหลมฉบัง)', type: 'First', distance: 120 },
+  ],
+  '010003': [ // LCH → ท่าเรือ NPM (765 km)
+    { depNo: '010102', departure: 'LCH (แหลมฉบัง)', destNo: '010024', destination: 'ท่าเรือ NPM', type: 'First', distance: 765 },
+  ],
+  '010005': [ // BTC → ไทยเบฟ → BTC (311 km)
+    { depNo: '010007', departure: 'ท่าเรือบางปะกง', destNo: '010025', destination: 'ไทยเบฟ (บางบาล)', type: 'First', distance: 151 },
+    { depNo: '010025', departure: 'ไทยเบฟ (บางบาล)', destNo: '010007', destination: 'ท่าเรือบางปะกง', type: 'Transport', distance: 160 },
+  ],
+  '010006': [ // BTC → ไทยเบฟ → SCSC → BTC (413 km)
+    { depNo: '010007', departure: 'ท่าเรือบางปะกง', destNo: '010025', destination: 'ไทยเบฟ (บางบาล)', type: 'First', distance: 151 },
+    { depNo: '010025', departure: 'ไทยเบฟ (บางบาล)', destNo: '010095', destination: 'SCSC', type: 'Transport', distance: 112 },
+    { depNo: '010095', departure: 'SCSC', destNo: '010007', destination: 'ท่าเรือบางปะกง', type: 'Transport', distance: 150 },
+  ],
+  '010007': [ // BTC → LCH → ไทยเบฟ → SCSC → BTC (529 km)
+    { depNo: '010007', departure: 'ท่าเรือบางปะกง', destNo: '010102', destination: 'LCH (แหลมฉบัง)', type: 'First', distance: 80 },
+    { depNo: '010102', departure: 'LCH (แหลมฉบัง)', destNo: '010025', destination: 'ไทยเบฟ (บางบาล)', type: 'Loading Transfer', distance: 180 },
+    { depNo: '010025', departure: 'ไทยเบฟ (บางบาล)', destNo: '010095', destination: 'SCSC', type: 'Transport', distance: 112 },
+    { depNo: '010095', departure: 'SCSC', destNo: '010007', destination: 'ท่าเรือบางปะกง', type: 'Transport', distance: 157 },
+  ],
+  '010011': [ // BTC → บุญรอดฯ → BTC (231 km)
+    { depNo: '010007', departure: 'ท่าเรือบางปะกง', destNo: '010027', destination: 'โรงงานบุญรอด (ปทุมฯ)', type: 'First', distance: 115 },
+    { depNo: '010027', departure: 'โรงงานบุญรอด (ปทุมฯ)', destNo: '010007', destination: 'ท่าเรือบางปะกง', type: 'Transport', distance: 116 },
+  ],
+  '010014': [ // BTC → มหพันธ์ (ลพบุรี) → BTC (397 km)
+    { depNo: '010007', departure: 'ท่าเรือบางปะกง', destNo: '010028', destination: 'มหพันธ์ (ลพบุรี)', type: 'First', distance: 198 },
+    { depNo: '010028', departure: 'มหพันธ์ (ลพบุรี)', destNo: '010007', destination: 'ท่าเรือบางปะกง', type: 'Transport', distance: 199 },
+  ],
+  '010024': [ // BTC → มิชลิน (หนองแค) → BTC (300 km)
+    { depNo: '010007', departure: 'ท่าเรือบางปะกง', destNo: '010038', destination: 'มิชลิน (หนองแค)', type: 'First', distance: 150 },
+    { depNo: '010038', departure: 'มิชลิน (หนองแค)', destNo: '010007', destination: 'ท่าเรือบางปะกง', type: 'Transport', distance: 150 },
+  ],
+  '010027': [ // BTC → มิชลิน (หนองรี) → BTC (55 km)
+    { depNo: '010007', departure: 'ท่าเรือบางปะกง', destNo: '010039', destination: 'มิชลิน (หนองรี)', type: 'First', distance: 27 },
+    { depNo: '010039', departure: 'มิชลิน (หนองรี)', destNo: '010007', destination: 'ท่าเรือบางปะกง', type: 'Transport', distance: 28 },
+  ],
+  '010029': [ // BTC → LCH (ตู้เปล่า) (124 km)
+    { depNo: '010007', departure: 'ท่าเรือบางปะกง', destNo: '010102', destination: 'LCH (แหลมฉบัง)', type: 'First', distance: 124 },
+  ],
+  '010030': [ // BTC → LCH (ตู้หนัก) (124 km)
+    { depNo: '010007', departure: 'ท่าเรือบางปะกง', destNo: '010102', destination: 'LCH (แหลมฉบัง)', type: 'First', distance: 124 },
+  ],
+};
+
 // ==================== CUSTOM ROUTE STAGE OPTIONS ====================
 export const CUSTOM_STAGE1_OPTIONS = [
   { value: '010007', label: '010007 — ท่าเรือบางปะกง' },
