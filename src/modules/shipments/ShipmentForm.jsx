@@ -12,7 +12,7 @@ import EmployeeSearchModal from './EmployeeSearchModal';
 import StageSwapModal from './StageSwapModal';
 import {
   pCfg, BU_OPTIONS, PRODUCT_TYPE_OPTIONS, SITE_OPTIONS, PRODUCT_SUBTYPE_OPTIONS,
-  SHIPMENT_TYPE_OPTIONS, SHIPPING_TYPE_OPTIONS, ROUTE_OPTIONS, CONNECTION_POINTS, ROUTE_STAGES,
+  SHIPMENT_TYPE_OPTIONS, SHIPPING_TYPE_OPTIONS, ROUTE_OPTIONS, CONNECTION_POINTS, ROUTE_STAGES, lookupMasterO3,
   YARD_OPTIONS, NGV_QUALITY_STATIONS, SCA_TRANSPORT_FEE_OPTIONS, SCA_TRIP_PAY_OPTIONS,
   APPROVED_FOS, SCA_POSITIONS, SAMPLE_CAR_CARRIER_VEHICLES,
 } from './shipmentConstants';
@@ -66,7 +66,6 @@ export default function ShipmentForm({ shipment, selectedFO, channel, onBack, is
     truck: shipment?.truck || '',
     trailer: shipment?.trailer || '',
     vehicleNo: shipment?.vehicleNo || '',
-    truckType: shipment?.truckType || '',
     transportFee: 'เก็บ',
     tripPay: 'จ่าย',
     brokenMiles: false,
@@ -117,6 +116,8 @@ export default function ShipmentForm({ shipment, selectedFO, channel, onBack, is
     { departure: '', destination: '' },
   ]);
   const [consolidatedFOs, setConsolidatedFOs] = useState([]);
+  const [routeSearch, setRouteSearch] = useState('');
+  const [showRouteDropdown, setShowRouteDropdown] = useState(false);
 
   // NGV specific state
   const nowDT = new Date().toISOString().slice(0, 16);
@@ -180,6 +181,27 @@ export default function ShipmentForm({ shipment, selectedFO, channel, onBack, is
   // ==================== HELPERS ====================
   const updateForm = useCallback((key, value) => setForm(f => ({ ...f, [key]: value })), []);
 
+  // Auto-populate from master_O3 when site + route are known
+  const applyMasterO3 = (site, route) => {
+    const o3 = lookupMasterO3(site, route);
+    if (o3) {
+      setForm(f => ({
+        ...f,
+        shipmentType: o3.shipmentType || f.shipmentType,
+        shippingType: o3.shippingType || f.shippingType,
+        productSubtype: o3.productSubtype || f.productSubtype,
+        wbs: o3.wbs || f.wbs,
+      }));
+    }
+  };
+
+  const handleSiteChange = (siteId) => {
+    updateForm('site', siteId);
+    if (siteId && form.route && form.route !== 'CUSTOM') {
+      applyMasterO3(siteId, form.route);
+    }
+  };
+
   const handleRouteChange = (routeId) => {
     updateForm('route', routeId);
     if (routeId === 'CUSTOM') {
@@ -195,11 +217,15 @@ export default function ShipmentForm({ shipment, selectedFO, channel, onBack, is
           plannedArr: '', plannedDep: '',
         })));
       }
+      // Auto-populate from master_O3
+      if (form.site && routeId) {
+        applyMasterO3(form.site, routeId);
+      }
     }
   };
 
   const handleTruckSelect = (truck) => {
-    setForm(f => ({ ...f, truck: truck.plate, trailer: truck.trailer, vehicleNo: truck.vehicleNo, truckType: truck.type }));
+    setForm(f => ({ ...f, truck: truck.plate, trailer: truck.trailer, vehicleNo: truck.vehicleNo }));
     setShowTruckSearch(false);
     setShowFleetSuggest(false);
   };
@@ -207,11 +233,11 @@ export default function ShipmentForm({ shipment, selectedFO, channel, onBack, is
   // Bidirectional truck/vehicle lookup
   const lookupByPlate = (plate) => {
     const found = truckMaster.find(t => t.plate === plate);
-    if (found) setForm(f => ({ ...f, truck: found.plate, trailer: found.trailer || '', vehicleNo: found.vehicleNo, truckType: found.type }));
+    if (found) setForm(f => ({ ...f, truck: found.plate, trailer: found.trailer || '', vehicleNo: found.vehicleNo }));
   };
   const lookupByVehicleNo = (vNo) => {
     const found = truckMaster.find(t => t.vehicleNo === vNo);
-    if (found) setForm(f => ({ ...f, truck: found.plate, trailer: found.trailer || '', vehicleNo: found.vehicleNo, truckType: found.type }));
+    if (found) setForm(f => ({ ...f, truck: found.plate, trailer: found.trailer || '', vehicleNo: found.vehicleNo }));
   };
 
   const handleEmployeeSelect = (emp) => {
@@ -305,7 +331,7 @@ export default function ShipmentForm({ shipment, selectedFO, channel, onBack, is
       route: form.route,
       routeName: ROUTE_OPTIONS.find(r => r.value === form.route)?.label || form.route,
       truck: form.truck, plate: form.truck, trailer: form.trailer,
-      vehicleNo: form.vehicleNo, vehicleType: form.truckType,
+      vehicleNo: form.vehicleNo,
       driver: drivers[0]?.name || '', driver1: drivers[0]?.id || '', driver1Name: drivers[0]?.name || '',
       driverId: drivers[0]?.id || '',
       totalQty: selectedFO?.qty ? parseInt(selectedFO.qty.replace(/[^0-9]/g, '')) : 0,
@@ -425,10 +451,35 @@ export default function ShipmentForm({ shipment, selectedFO, channel, onBack, is
       <CollapsibleSection title={t('shipmentForm.shipmentHeader')}>
         <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-3">
           <FormField label={t('shipmentForm.shipmentNo')} value={form.shipmentNo} disabled />
-          <FormField label="หน่วยงาน (Site)" type="select" value={form.site || selectedFO?.site || ''} onChange={v => updateForm('site', v)}
+          <FormField label="หน่วยงาน (Site)" type="select" value={form.site || selectedFO?.site || ''} onChange={handleSiteChange}
             options={SITE_OPTIONS} required />
-          <FormField label={t('shipmentForm.route')} type="select" value={form.route} onChange={handleRouteChange}
-            options={ROUTE_OPTIONS.map(r => ({ value: r.value, label: r.label }))} required />
+          <div className="relative">
+            <label className="block text-label font-medium text-text-sec mb-1.5">
+              {t('shipmentForm.route')}<span className="text-error ml-0.5">*</span>
+            </label>
+            <input
+              type="text"
+              value={routeSearch || (form.route ? (ROUTE_OPTIONS.find(r => r.value === form.route)?.label || form.route) : '')}
+              onChange={e => { setRouteSearch(e.target.value); setShowRouteDropdown(true); }}
+              onFocus={() => setShowRouteDropdown(true)}
+              onBlur={() => setTimeout(() => setShowRouteDropdown(false), 200)}
+              placeholder="Search route by name or code..."
+              className="w-full border border-border rounded-md px-3 py-2 text-table text-text focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+            />
+            {showRouteDropdown && (
+              <div className="absolute z-50 w-full mt-1 bg-white border border-border rounded-md shadow-lg max-h-48 overflow-y-auto">
+                {[...ROUTE_OPTIONS, { value: 'CUSTOM', label: 'CUSTOM — Create Custom Route' }]
+                  .filter(r => !routeSearch || r.label.toLowerCase().includes(routeSearch.toLowerCase()) || r.value.includes(routeSearch))
+                  .map(r => (
+                    <div key={r.value}
+                      onClick={() => { handleRouteChange(r.value); setRouteSearch(''); setShowRouteDropdown(false); }}
+                      className="px-3 py-2 text-table hover:bg-blue-50 cursor-pointer border-b border-border-light last:border-0">
+                      {r.label}
+                    </div>
+                  ))}
+              </div>
+            )}
+          </div>
           <FormField label={t('shipmentForm.shipmentType')} type="select" value={form.shipmentType} onChange={v => updateForm('shipmentType', v)}
             options={SHIPMENT_TYPE_OPTIONS} />
           <FormField label={t('shipmentForm.shippingType')} type="select" value={form.shippingType} onChange={v => updateForm('shippingType', v)}

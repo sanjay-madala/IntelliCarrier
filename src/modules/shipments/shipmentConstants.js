@@ -559,3 +559,42 @@ export const SAMPLE_CAR_CARRIER_VEHICLES = [
   { pos: 'L2', vin: '202512-XH0678', model: 'Hilux Revo', engine: '', color: 'White', soldTo: '1100297', dealer: 'บจก.โตโยต้า ทรานสปอร์ต', shipTo: '9140343', shipToName: 'LCB โตโยต้าแหลมฉบัง', calling: '', returnCar: false },
   { pos: 'L3', vin: '202512-XH0679', model: 'Hilux Revo', engine: '', color: 'Gray', soldTo: '1100297', dealer: 'บจก.โตโยต้า ทรานสปอร์ต', shipTo: '9140343', shipToName: 'LCB โตโยต้าแหลมฉบัง', calling: '', returnCar: false },
 ];
+
+// ==================== MASTER O3 — Auto-populate lookup ====================
+// When user selects หน่วยงาน (site) + เส้นทาง (route), auto-fill shipmentType, shippingType, productSubtype, wbs
+// Key format: "site|route" → defaults
+export const MASTER_O3 = {
+  // COC-FUEL sites
+  '060B|010001': { shipmentType: '0002', shippingType: '01', productSubtype: '6001', wbs: 'WBS-FUEL-060B' },
+  '060B|010002': { shipmentType: '0002', shippingType: '01', productSubtype: '6001', wbs: 'WBS-FUEL-060B' },
+  '0610|010001': { shipmentType: '0002', shippingType: '01', productSubtype: '6001', wbs: 'WBS-FUEL-0610' },
+  '0618|010004': { shipmentType: '0002', shippingType: '01', productSubtype: '6001', wbs: 'WBS-FUEL-0618' },
+  // SHELL-FUEL sites
+  '060J|010005': { shipmentType: '0001', shippingType: '01', productSubtype: '6002', wbs: 'WBS-SHELL-060J' },
+  '060L|010005': { shipmentType: '0001', shippingType: '01', productSubtype: '6002', wbs: 'WBS-SHELL-060L' },
+  '061B|010006': { shipmentType: '0001', shippingType: '01', productSubtype: '6002', wbs: 'WBS-SHELL-061B' },
+  // LPG sites
+  '060C|010007': { shipmentType: '0001', shippingType: '01', productSubtype: '6010', wbs: 'WBS-LPG-060C' },
+  '060E|010008': { shipmentType: '0001', shippingType: '01', productSubtype: '6010', wbs: 'WBS-LPG-060E' },
+  // NGV sites
+  '060D|010009': { shipmentType: '0001', shippingType: '01', productSubtype: '6021', wbs: 'WBS-NGV-060D' },
+  '060R|010009': { shipmentType: '0001', shippingType: '01', productSubtype: '6021', wbs: 'WBS-NGV-060R' },
+  // CHEM sites
+  '060N|010010': { shipmentType: '0003', shippingType: '01', productSubtype: '6030', wbs: 'WBS-CHEM-060N' },
+  // BCP-FUEL
+  '061D|010011': { shipmentType: '0002', shippingType: '01', productSubtype: '6003', wbs: 'WBS-BCP-061D' },
+  '060X|010004': { shipmentType: '0002', shippingType: '01', productSubtype: '6003', wbs: 'WBS-BCP-060X' },
+  // PTTOR
+  '060Z|010001': { shipmentType: '0001', shippingType: '01', productSubtype: '6005', wbs: 'WBS-PTTOR-060Z' },
+  // ATLAS
+  '060U|010007': { shipmentType: '0001', shippingType: '01', productSubtype: '6010', wbs: 'WBS-ATLAS-060U' },
+  // Container
+  '0636|010001': { shipmentType: '0002', shippingType: '01', productSubtype: '6050', wbs: 'WBS-SPL-0636' },
+  '0636|010002': { shipmentType: '0002', shippingType: '01', productSubtype: '6050', wbs: 'WBS-SPL-0636' },
+  '0636|010003': { shipmentType: '0002', shippingType: '01', productSubtype: '6050', wbs: 'WBS-SPL-0636' },
+};
+
+// Lookup function: returns defaults or null
+export function lookupMasterO3(site, route) {
+  return MASTER_O3[`${site}|${route}`] || null;
+}
