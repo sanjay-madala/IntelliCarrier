@@ -1,0 +1,50 @@
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer components {
+  .shell-gradient {
+    @apply bg-gradient-to-r from-shell to-shell-end;
+  }
+  .bridge-green { background: linear-gradient(135deg, #107e3e 0%, #1a9898 100%); }
+  .bridge-blue  { background: linear-gradient(135deg, #0854a0 0%, #0a6ed1 100%); }
+  .bridge-purple { background: linear-gradient(135deg, #7b1fa2 0%, #0854a0 100%); }
+  .badge-pill { @apply inline-flex items-center px-2 py-0.5 rounded-[10px] text-xs font-medium; }
+
+  /* Product badge colors */
+  .badge-lpg { @apply bg-red-100 text-red-700; }
+  .badge-chem { @apply bg-violet-100 text-violet-700; }
+  .badge-fuel { @apply bg-amber-100 text-amber-700; }
+  .badge-ngv { @apply bg-green-100 text-green-700; }
+  .badge-container { @apply bg-blue-100 text-blue-700; }
+  .badge-sca { @apply bg-cyan-100 text-cyan-700; }
+  .badge-general { @apply bg-gray-100 text-gray-700; }
+  .badge-tug { @apply bg-indigo-100 text-indigo-700; }
+
+  /* Legacy gradient aliases used by BridgeBanner */
+  .bridge-gradient-primary { @apply bg-gradient-to-r from-primary to-primary-hover text-white; }
+  .bridge-gradient-accent { @apply bg-gradient-to-r from-accent to-emerald-600 text-white; }
+  .bridge-gradient-warning { @apply bg-gradient-to-r from-warning to-amber-500 text-white; }
+}
+
+/* Form controls used by FreightOrderModule */
+.fc {
+  padding: 0.4rem 0.6rem;
+  border: 1px solid #d9d9d9;
+  border-radius: 4px;
+  font-size: 0.82rem;
+  font-family: 'IBM Plex Sans', 'IBM Plex Sans Thai', -apple-system, sans-serif;
+  color: #32363a;
+  width: 100%;
+  background: #fff;
+}
+.fc:focus {
+  outline: none;
+  border-color: #0854a0;
+  box-shadow: 0 0 0 2px rgba(8, 84, 160, 0.1);
+}
+select.fc {
+  appearance: auto;
+}

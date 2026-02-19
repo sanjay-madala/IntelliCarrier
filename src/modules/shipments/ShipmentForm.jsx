@@ -1,0 +1,1050 @@
+import React, { useState, useCallback } from 'react';
+import { useLanguage } from '../../contexts/LanguageContext';
+import { useApp } from '../../contexts/AppContext';
+import CollapsibleSection from '../../components/common/CollapsibleSection';
+import FormField from '../../components/common/FormField';
+import InfoStrip from '../../components/common/InfoStrip';
+import { ProductBadge } from '../../components/common/Badge';
+import { generateId } from '../../utils/helpers';
+import TruckSearchModal from './TruckSearchModal';
+import FleetSuggestModal from './FleetSuggestModal';
+import EmployeeSearchModal from './EmployeeSearchModal';
+import StageSwapModal from './StageSwapModal';
+import {
+  pCfg, BU_OPTIONS, PRODUCT_TYPE_OPTIONS, SITE_OPTIONS,
+  SHIPMENT_TYPE_OPTIONS, SHIPPING_TYPE_OPTIONS, ROUTE_OPTIONS,
+  CUSTOM_STAGE1_OPTIONS, CUSTOM_STAGE2_OPTIONS, CUSTOM_STAGE3_OPTIONS, CUSTOM_STAGE4_OPTIONS,
+  YARD_OPTIONS, NGV_QUALITY_STATIONS, SCA_TRANSPORT_FEE_OPTIONS, SCA_TRIP_PAY_OPTIONS,
+  APPROVED_FOS, SCA_POSITIONS, SAMPLE_CAR_CARRIER_VEHICLES,
+} from './shipmentConstants';
+import { trucks as truckMaster } from '../../data/mockData';
+
+// ==================== DEFAULT STAGES ====================
+const defaultStages = [
+  { stage: 0, depNo: '—', departure: '—', destNo: '010007', destination: 'ท่าเรือบางปะกง', type: 'First', plannedArr: '', plannedDep: '', distance: 0 },
+  { stage: 1, depNo: '010007', departure: 'ท่าเรือบางปะกง', destNo: '010025', destination: 'ไทยเบฟ (บางบาล)', type: 'Transport', plannedArr: '', plannedDep: '', distance: 151 },
+  { stage: 2, depNo: '010025', departure: 'ไทยเบฟ (บางบาล)', destNo: '010007', destination: 'ท่าเรือบางปะกง', type: 'Loading Transfer', plannedArr: '', plannedDep: '', distance: 160 },
+];
+
+// ==================== DRIVER/HELPER ROWS ====================
+const DRIVER_ROLES_KEYS = [
+  { key: 'driver1', labelKey: 'shipmentForm.driverRole1', required: true },
+  { key: 'driver2', labelKey: 'shipmentForm.driverRole2', required: false },
+  { key: 'driver3', labelKey: 'shipmentForm.driverRole3', required: false },
+  { key: 'driver4', labelKey: 'shipmentForm.driverRole4', required: false },
+  { key: 'helper1', labelKey: 'shipmentForm.helperRole1', required: false },
+  { key: 'helper2', labelKey: 'shipmentForm.helperRole2', required: false },
+];
+
+// Stage type badge colors
+const stageTypeBadge = {
+  'First': 'bg-blue-100 text-blue-700',
+  'Transport': 'bg-orange-100 text-orange-700',
+  'Loading Transfer': 'bg-green-100 text-green-700',
+  'Customer': 'bg-green-100 text-green-700',
+  'Last': 'bg-gray-200 text-gray-700',
+};
+
+export default function ShipmentForm({ shipment, selectedFO, channel, onBack, isEditMode = false }) {
+  const { t } = useLanguage();
+  const { dispatch } = useApp();
+  const pc = pCfg(channel?.product || selectedFO?.product || shipment?.product || 'LPG');
+
+  // Resolve driver role labels with translations
+  const DRIVER_ROLES = DRIVER_ROLES_KEYS.map(r => ({ ...r, label: t(r.labelKey) }));
+
+  // ==================== FORM STATE ====================
+  const [form, setForm] = useState({
+    shipmentNo: shipment?.id || 'Auto-generated',
+    bu: channel?.bu || selectedFO?.bu || shipment?.bu || '',
+    product: channel?.product || selectedFO?.product || shipment?.product || '',
+    site: channel?.site || selectedFO?.site || shipment?.site || '',
+    shipmentType: shipment?.shipmentType || pc.shipType,
+    shippingType: shipment?.shippingType || '01',
+    route: selectedFO?.route || shipment?.route || '',
+    wbs: selectedFO?.wbs || shipment?.wbs || '',
+    contractDate: '',
+    plannedDate: '',
+    truck: shipment?.truck || '',
+    trailer: shipment?.trailer || '',
+    vehicleNo: shipment?.vehicleNo || '',
+    truckType: shipment?.truckType || '',
+    transportFee: 'เก็บ',
+    tripPay: 'จ่าย',
+    brokenMiles: false,
+    // Edit mode fields
+    poNo: '',
+    ticketNo: '',
+    ticketDate: '',
+    // Custom route
+    customStage1: '', customStage2: '', customStage3: '', customStage4: '',
+  });
+
+  const [drivers, setDrivers] = useState(
+    DRIVER_ROLES.map(r => ({
+      key: r.key, id: shipment?.driver1 && r.key === 'driver1' ? shipment.driver1 : '',
+      name: shipment?.driver1Name && r.key === 'driver1' ? shipment.driver1Name : '',
+      phone: '', intern: false, licenseValid: r.key === 'driver1' && shipment?.driver1,
+    }))
+  );
+
+  const [stages, setStages] = useState(shipment?.stages?.map((s, i) => ({
+    stage: i, depNo: '', departure: s.from || '', destNo: '', destination: s.to || '',
+    type: i === 0 ? 'First' : s.type || 'Transport',
+    plannedArr: '', plannedDep: '', distance: s.distance || 0,
+  })) || [...defaultStages]);
+
+  const [showCustomRoute, setShowCustomRoute] = useState(false);
+  const [consolidatedFOs, setConsolidatedFOs] = useState([]);
+
+  // NGV specific state
+  const [ngvData, setNgvData] = useState({
+    receiveDate: '', refDate: '', dispatchDate: '', refNo: '',
+    custNotify: '', custPSI: '', pairedVehicle: '', sentFrom: '',
+    custOrder: '', brokenTubeDate: '', remark: '',
+    mainTube: { no: 'NGV-T001', psi: 3200, weight: 4250, temp: 32 },
+    pillarTube: { no: 'NGV-P001', psi: 3100, weight: 4100, temp: 33 },
+    qualityReadings: [1, 2, 3, 4].map((_, i) => ({
+      station: NGV_QUALITY_STATIONS[i], temp1: 0, temp2: 0, pressure: 0, alc1: 0, alc2: 0, note: '',
+    })),
+  });
+
+  // Fuel specific state
+  const [fuelData, setFuelData] = useState({
+    shipCust: '', custName: 'Shell (สระบุรี)', custCode: 'SH-SRB-001',
+    deliveries: [
+      { shipTo: '269307', name: 'บจก. ชุลออยล์ เซอร์วิส', code: 'SH-001', deliveryNo: '8023742938', comps: [
+        { comp: '001', qty: 9000, status: 'Y ส่งได้' }, { comp: '002', qty: 6000, status: 'Y ส่งได้' },
+        { comp: '004', qty: 5000, status: 'Y ส่งได้' }, { comp: '—', qty: 0, status: '—' },
+      ]},
+      { shipTo: '240217', name: 'บจก. ไอ อาร์ พี ฟิวเจอร์', code: 'IRP-001', deliveryNo: '8023742937', comps: [
+        { comp: '003', qty: 8000, status: 'Y ส่งได้' }, { comp: '—', qty: 0, status: '—' },
+        { comp: '—', qty: 0, status: '—' }, { comp: '—', qty: 0, status: '—' },
+      ]},
+    ],
+  });
+
+  // Container specific state
+  const [containerData, setContainerData] = useState({
+    shipTo: '', soldTo: '', payer: '', billTo: '',
+    shipToName: 'ท่าเรือกรุงเทพ', soldToName: 'Evergreen Line (TH)',
+    payerName: '', billToName: '',
+    booking: 'BKG-EV-2026-0142', shippingLine: '', vessel: '', containerCount: 2,
+    remark1: '', remark2: '',
+    containers: [
+      { no: 'EGHU1234567', size: '40ft HC', type: 'FCL', seal: '', weight: 24500, tare: 3800, vgm: 28300 },
+      { no: 'EGHU7654321', size: '40ft HC', type: 'FCL', seal: '', weight: 22100, tare: 3800, vgm: 25900 },
+    ],
+  });
+
+  // Car Carrier specific state
+  const [scaData, setScaData] = useState({
+    yardNo: '', transType: 'I', callingNo: '', groupNo: '', trip: '',
+    transportFee: 'Y เก็บ', tripPay: 'Y จ่าย', brokenMiles: false,
+    positions: SCA_POSITIONS,
+    vehicles: SAMPLE_CAR_CARRIER_VEHICLES,
+  });
+
+  // ==================== MODALS ====================
+  const [showTruckSearch, setShowTruckSearch] = useState(false);
+  const [showFleetSuggest, setShowFleetSuggest] = useState(false);
+  const [empSearchTarget, setEmpSearchTarget] = useState(null);
+  const [showStageSwap, setShowStageSwap] = useState(null);
+
+  // ==================== HELPERS ====================
+  const updateForm = useCallback((key, value) => setForm(f => ({ ...f, [key]: value })), []);
+
+  const handleRouteChange = (routeId) => {
+    updateForm('route', routeId);
+    setShowCustomRoute(routeId === 'CUSTOM');
+  };
+
+  const handleTruckSelect = (truck) => {
+    setForm(f => ({ ...f, truck: truck.plate, trailer: truck.trailer, vehicleNo: truck.vehicleNo, truckType: truck.type }));
+    setShowTruckSearch(false);
+    setShowFleetSuggest(false);
+  };
+
+  // Bidirectional truck/vehicle lookup
+  const lookupByPlate = (plate) => {
+    const found = truckMaster.find(t => t.plate === plate);
+    if (found) setForm(f => ({ ...f, truck: found.plate, trailer: found.trailer || '', vehicleNo: found.vehicleNo, truckType: found.type }));
+  };
+  const lookupByVehicleNo = (vNo) => {
+    const found = truckMaster.find(t => t.vehicleNo === vNo);
+    if (found) setForm(f => ({ ...f, truck: found.plate, trailer: found.trailer || '', vehicleNo: found.vehicleNo, truckType: found.type }));
+  };
+
+  const handleEmployeeSelect = (emp) => {
+    if (!empSearchTarget) return;
+    setDrivers(prev => prev.map(d =>
+      d.key === empSearchTarget
+        ? { ...d, id: emp.id, name: emp.name, phone: emp.phone, intern: emp.intern, licenseValid: emp.licenseValid }
+        : d
+    ));
+    setEmpSearchTarget(null);
+  };
+
+  const handleStageSwap = (index, direction) => {
+    setShowStageSwap({ index, direction });
+  };
+
+  const confirmStageSwap = () => {
+    if (!showStageSwap) return;
+    const { index, direction } = showStageSwap;
+    const target = direction === 'up' ? index - 1 : index + 1;
+    if (target < 0 || target >= stages.length) { setShowStageSwap(null); return; }
+    setStages(prev => {
+      const next = [...prev];
+      [next[index], next[target]] = [next[target], next[index]];
+      return next.map((s, i) => ({ ...s, stage: i }));
+    });
+    setShowStageSwap(null);
+  };
+
+  const addStage = () => {
+    setStages(prev => [...prev, {
+      stage: prev.length, depNo: '', departure: '', destNo: '', destination: '',
+      type: 'Transport', plannedArr: '', plannedDep: '', distance: 0,
+    }]);
+  };
+
+  const totalDistance = stages.reduce((sum, s) => sum + (s.distance || 0), 0);
+
+  // ==================== MATCHING FOs ====================
+  const matchingFOs = selectedFO
+    ? APPROVED_FOS.filter(fo => fo.route === selectedFO.route && fo.id !== selectedFO.id && fo.product === selectedFO.product)
+    : [];
+
+  // ==================== SAVE/DISPATCH ====================
+  const handleSave = () => {
+    // Validate required fields
+    const missing = [];
+    if (!form.bu) missing.push('BU');
+    if (!(form.product || selectedFO?.product)) missing.push('Product');
+    if (!form.route) missing.push('Route');
+    if (!form.truck) missing.push('Truck');
+    if (!drivers[0]?.name) missing.push('Driver');
+    if (missing.length > 0) {
+      window.alert(`⚠️ Please fill required fields:\n${missing.join(', ')}`);
+      return;
+    }
+    const data = {
+      id: shipment?.id || generateId('SHP'),
+      shipmentNo: shipment?.id || generateId('SHP'),
+      status: 'OPEN',
+      product: form.product || selectedFO?.product,
+      bu: form.bu || selectedFO?.bu,
+      site: form.site || selectedFO?.site,
+      source: 'Manual Entry',
+      sourceIcon: '✏️',
+      customer: selectedFO?.customer || '',
+      customerName: selectedFO?.customer || '',
+      route: form.route,
+      routeName: ROUTE_OPTIONS.find(r => r.value === form.route)?.label || form.route,
+      truck: form.truck, plate: form.truck, trailer: form.trailer,
+      vehicleNo: form.vehicleNo, vehicleType: form.truckType,
+      driver: drivers[0]?.name || '', driver1: drivers[0]?.id || '', driver1Name: drivers[0]?.name || '',
+      driverId: drivers[0]?.id || '',
+      totalQty: selectedFO?.qty ? parseInt(selectedFO.qty.replace(/[^0-9]/g, '')) : 0,
+      totalWeight: 0,
+      created: new Date().toISOString().split('T')[0],
+      stages: stages.map(s => ({ no: s.stage, from: s.departure, to: s.destination, type: s.type, distance: s.distance, status: 'pending' })),
+      consolidatedFOs: consolidatedFOs.map(fo => fo.id),
+      channelSource: channel?.key || 'manual',
+    };
+    if (isEditMode && shipment?.id) {
+      dispatch({ type: 'UPDATE_SHIPMENT', payload: data });
+    } else {
+      dispatch({ type: 'ADD_SHIPMENT', payload: data });
+    }
+    onBack();
+  };
+
+  const handleDispatch = () => {
+    handleSave();
+    if (shipment?.id) dispatch({ type: 'DISPATCH_SHIPMENT', payload: shipment.id });
+    onBack();
+  };
+
+  const currentProduct = form.product || selectedFO?.product || '';
+
+  // ==================== RENDER ====================
+  return (
+    <div className="space-y-3">
+      {/* ===== HEADER ===== */}
+      <div className="bg-blue-50 rounded-lg border border-blue-200 p-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-lg font-bold text-text flex items-center gap-2">
+              {isEditMode ? `${t('shipmentForm.editShipment')}: ${form.shipmentNo}` : t('shipmentForm.createShipment')}
+            </h1>
+            <p className="text-table text-text-sec mt-0.5">
+              {isEditMode ? `${t('shipmentForm.fosLabel')}: ${shipment?.fos?.join(', ')}` : t('shipmentForm.consolidateDesc')}
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className={`px-3 py-1 rounded-full text-xs font-semibold ${isEditMode ? 'bg-orange-100 text-orange-700' : 'bg-blue-100 text-blue-700'}`}>
+              {isEditMode ? shipment?.status || 'OPEN' : t('shipmentForm.newStatus')}
+            </span>
+            <button onClick={onBack} className="px-3 py-1.5 rounded border border-blue-300 text-table text-primary hover:bg-blue-100">
+              &larr; {t('shipmentForm.backToFOList')}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* ===== SECTION 1: BU & PRODUCT (only for non-FO create) ===== */}
+      {!selectedFO && !isEditMode && (
+        <CollapsibleSection title={t('shipmentForm.selectBUProduct')}>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <FormField label={t('shipmentForm.businessUnit')} type="select" value={form.bu} onChange={v => updateForm('bu', v)} required
+              options={BU_OPTIONS} placeholder={t('shipmentForm.selectBU')} />
+            <FormField label={t('shipmentForm.productType')} type="select" value={form.product} onChange={v => { updateForm('product', v); }} required
+              options={PRODUCT_TYPE_OPTIONS} placeholder={t('shipmentForm.selectProduct')} />
+            <FormField label={t('shipmentForm.siteOptional')} type="select" value={form.site} onChange={v => updateForm('site', v)}
+              options={SITE_OPTIONS} placeholder={t('shipmentForm.allSites')} />
+          </div>
+        </CollapsibleSection>
+      )}
+
+      {/* ===== SECTION 2: SELECTED FO (from FO list) ===== */}
+      {selectedFO && (
+        <CollapsibleSection title={t('shipmentForm.selectedFO')} badge={`1 ${t('shipmentForm.foSelected')}`}>
+          <InfoStrip variant="info" icon="ℹ️">
+            {t('shipmentForm.consolidateInfo')}
+          </InfoStrip>
+          <div className="mt-2 border-2 border-primary rounded-lg p-4 bg-blue-50/50">
+            <div className="flex items-center justify-between mb-2">
+              <span className="font-bold text-primary text-base">{selectedFO.id}</span>
+              <ProductBadge product={selectedFO.product} />
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-3 text-table">
+              <div><span className="text-xs text-text-muted block">{t('shipmentForm.buSite')}</span><span className="font-medium">{selectedFO.bu} / {selectedFO.site}</span></div>
+              <div><span className="text-xs text-text-muted block">{t('shipmentForm.route')}</span><span className="font-medium">{selectedFO.route}</span></div>
+              <div><span className="text-xs text-text-muted block">{t('shipmentForm.customer')}</span><span className="font-medium">{selectedFO.customer}</span></div>
+              <div><span className="text-xs text-text-muted block">{t('shipmentForm.shipTo')}</span><span className="font-medium">{selectedFO.shipTo}</span></div>
+              <div><span className="text-xs text-text-muted block">{t('shipmentForm.quantity')}</span><span className="font-medium">{selectedFO.qty}</span></div>
+              <div><span className="text-xs text-text-muted block">{t('shipmentForm.plannedDate')}</span><span className="font-medium">{selectedFO.date}</span></div>
+              <div><span className="text-xs text-text-muted block">{t('shipmentForm.contractWBS')}</span><span className="font-medium">{selectedFO.wbs}</span></div>
+              <div><span className="text-xs text-text-muted block">{t('shipmentForm.statusLabel')}</span><span className="inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">{t('shipmentForm.approved')}</span></div>
+            </div>
+          </div>
+
+          {/* Matching FOs for consolidation */}
+          {matchingFOs.length > 0 && (
+            <div className="mt-3 border border-border rounded-lg overflow-hidden">
+              <div className="bg-gray-50 px-3 py-2 border-b border-border flex items-center justify-between">
+                <span className="text-table font-semibold">{t('shipmentForm.matchingFOs')}: <strong>{selectedFO.route}</strong></span>
+                <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700">{matchingFOs.length} {t('shipmentForm.available')}</span>
+              </div>
+              <div className="max-h-[150px] overflow-y-auto">
+                {matchingFOs.map(fo => {
+                  const isAdded = consolidatedFOs.includes(fo.id);
+                  return (
+                    <div key={fo.id} className={`flex items-center gap-3 px-3 py-2 border-b border-border-light text-table ${isAdded ? 'bg-green-50' : 'hover:bg-blue-50/30'}`}>
+                      <input type="checkbox" checked={isAdded} onChange={e => {
+                        setConsolidatedFOs(prev => e.target.checked ? [...prev, fo.id] : prev.filter(id => id !== fo.id));
+                      }} className="w-4 h-4 accent-primary" />
+                      <span className="font-mono font-semibold text-primary">{fo.id}</span>
+                      <span>{fo.customer}</span>
+                      <span className="text-text-sec">{fo.qty}</span>
+                      <span className="text-text-sec">{fo.date}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </CollapsibleSection>
+      )}
+
+      {/* ===== SECTION 3: SHIPMENT HEADER ===== */}
+      <CollapsibleSection title={t('shipmentForm.shipmentHeader')}>
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-3">
+          <FormField label={t('shipmentForm.shipmentNo')} value={form.shipmentNo} disabled />
+          <FormField label={t('shipmentForm.shipmentType')} type="select" value={form.shipmentType} onChange={v => updateForm('shipmentType', v)}
+            options={SHIPMENT_TYPE_OPTIONS} required />
+          <FormField label={t('shipmentForm.shippingType')} type="select" value={form.shippingType} onChange={v => updateForm('shippingType', v)}
+            options={SHIPPING_TYPE_OPTIONS} required />
+          <FormField label={t('shipmentForm.productType')} value={currentProduct} disabled />
+          <FormField label={t('shipmentForm.buSite')} value={`${form.bu || selectedFO?.bu || ''} / ${form.site || selectedFO?.site || ''}`} disabled />
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
+          <FormField label={t('shipmentForm.route')} type="select" value={form.route} onChange={handleRouteChange}
+            options={ROUTE_OPTIONS.map(r => ({ value: r.value, label: r.label }))} required />
+          <FormField label={t('shipmentForm.contractWBS')} value={form.wbs} onChange={v => updateForm('wbs', v)} required />
+          <FormField label={t('shipmentForm.contractDate')} type="date" value={form.contractDate} onChange={v => updateForm('contractDate', v)} required />
+          <FormField label={t('shipmentForm.plannedDateTime')} type="datetime-local" value={form.plannedDate} onChange={v => updateForm('plannedDate', v)} required />
+        </div>
+
+        {/* Custom Route Fields */}
+        {showCustomRoute && (
+          <div className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+            <div className="text-table font-semibold text-orange-700 mb-2">{t('shipmentForm.customRoute')}</div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <FormField label={t('shipmentForm.stage1Origin')} type="select" value={form.customStage1} onChange={v => updateForm('customStage1', v)} options={CUSTOM_STAGE1_OPTIONS} />
+              <FormField label={t('shipmentForm.stage2Loading')} type="select" value={form.customStage2} onChange={v => updateForm('customStage2', v)} options={CUSTOM_STAGE2_OPTIONS} />
+              <FormField label={t('shipmentForm.stage3Transfer')} type="select" value={form.customStage3} onChange={v => updateForm('customStage3', v)} options={CUSTOM_STAGE3_OPTIONS} />
+              <FormField label={t('shipmentForm.stage4Return')} type="select" value={form.customStage4} onChange={v => updateForm('customStage4', v)} options={CUSTOM_STAGE4_OPTIONS} />
+            </div>
+            <div className="mt-2 text-right">
+              <button className="px-3 py-1 rounded bg-orange-500 text-white text-xs font-medium hover:bg-orange-600"
+                onClick={() => { setForm(f => ({ ...f, route: 'DUMMY', customStage1: '', customStage2: '', customStage3: '', customStage4: '' })); window.alert('Dummy route created with distance 0 and type Dummy.'); }}>
+                {t('shipmentForm.createDummyRoute')}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Edit Mode Additional Fields */}
+        {isEditMode && (
+          <div className="mt-3 pt-3 border-t border-dashed border-border">
+            <div className="text-table font-semibold text-text-sec mb-2">{t('shipmentForm.additionalFields')}</div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <FormField label={t('shipmentForm.poNo')} value={form.poNo} onChange={v => updateForm('poNo', v)} placeholder="Purchase Order No." />
+              <FormField label={t('shipmentForm.ticketNo')} value={form.ticketNo} onChange={v => updateForm('ticketNo', v)} placeholder="Ticket Document No." />
+              <FormField label={t('shipmentForm.ticketDate')} type="date" value={form.ticketDate} onChange={v => updateForm('ticketDate', v)} />
+            </div>
+          </div>
+        )}
+      </CollapsibleSection>
+
+      {/* ===== SECTION 4: VEHICLE ASSIGNMENT ===== */}
+      <CollapsibleSection
+        title={t('shipmentForm.vehicleAssignment')}
+        badge={form.truck ? form.truck : null}
+      >
+        <InfoStrip variant="info" icon="ℹ️">
+          {t('shipmentForm.vehicleInfo')}
+        </InfoStrip>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-3">
+          <div>
+            <label className="block text-xs font-medium text-text-sec mb-1"><span className="text-error">*</span> {t('shipmentForm.truckPlate')}</label>
+            <div className="flex">
+              <input type="text" value={form.truck} onChange={e => updateForm('truck', e.target.value)} onBlur={e => lookupByPlate(e.target.value)} placeholder="e.g. 83-0569"
+                disabled={isEditMode}
+                className="flex-1 border border-border rounded-l px-2.5 py-1.5 text-table focus:outline-none focus:ring-1 focus:ring-primary disabled:bg-bg disabled:text-text-muted" />
+              <button onClick={() => setShowTruckSearch(true)} disabled={isEditMode}
+                className="px-2.5 py-1.5 border border-l-0 border-border rounded-r bg-gray-50 hover:bg-gray-100 text-sm disabled:opacity-50">
+                Search
+              </button>
+            </div>
+          </div>
+          <FormField label={t('shipmentForm.trailerPlate')} value={form.trailer} disabled />
+          <div>
+            <label className="block text-xs font-medium text-text-sec mb-1">{t('shipmentForm.vehicleNoLabel')}</label>
+            <div className="flex">
+              <input type="text" value={form.vehicleNo} onChange={e => updateForm('vehicleNo', e.target.value)} onBlur={e => lookupByVehicleNo(e.target.value)} placeholder="Or enter vehicle no."
+                disabled={isEditMode}
+                className="flex-1 border border-border rounded-l px-2.5 py-1.5 text-table focus:outline-none focus:ring-1 focus:ring-primary disabled:bg-bg disabled:text-text-muted" />
+              <button onClick={() => setShowTruckSearch(true)} disabled={isEditMode}
+                className="px-2.5 py-1.5 border border-l-0 border-border rounded-r bg-gray-50 hover:bg-gray-100 text-sm disabled:opacity-50">
+                Search
+              </button>
+            </div>
+          </div>
+          <FormField label={t('shipmentForm.truckType')} value={form.truckType} disabled />
+        </div>
+        {!isEditMode && (
+          <button onClick={() => setShowFleetSuggest(true)} className="mt-3 px-3 py-1.5 rounded bg-primary text-white text-table font-medium hover:bg-primary-hover">
+            {t('shipmentForm.fleetSuggest')}
+          </button>
+        )}
+      </CollapsibleSection>
+
+      {/* ===== SECTION 5: DRIVERS & HELPERS ===== */}
+      <CollapsibleSection title={t('shipmentForm.driversHelpers')}>
+        <InfoStrip variant="warning" icon="⚠️">
+          {t('shipmentForm.driverCheckInfo')}
+        </InfoStrip>
+        <div className="overflow-x-auto mt-3">
+          <table className="w-full text-table">
+            <thead>
+              <tr className="bg-gray-50 border-b border-border">
+                <th className="text-center px-2 py-2 font-semibold text-text-sec w-8">#</th>
+                <th className="text-left px-2 py-2 font-semibold text-text-sec w-28">{t('shipmentForm.role')}</th>
+                <th className="text-left px-2 py-2 font-semibold text-text-sec">{t('shipmentForm.employeeId')}</th>
+                <th className="text-left px-2 py-2 font-semibold text-text-sec">{t('shipmentForm.name')}</th>
+                <th className="text-left px-2 py-2 font-semibold text-text-sec w-24">{t('shipmentForm.phone')}</th>
+                <th className="text-center px-2 py-2 font-semibold text-text-sec w-14">{t('shipmentForm.intern')}</th>
+                <th className="text-center px-2 py-2 font-semibold text-text-sec w-20">{t('shipmentForm.license')}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {drivers.map((d, i) => (
+                <tr key={d.key} className="border-b border-border-light">
+                  <td className="text-center px-2 py-2 font-medium">{i + 1}</td>
+                  <td className="px-2 py-2">
+                    <span className={DRIVER_ROLES[i].required ? 'font-bold text-error' : ''}>
+                      {DRIVER_ROLES[i].label}
+                    </span>
+                  </td>
+                  <td className="px-2 py-2">
+                    <div className="flex">
+                      <input type="text" value={d.id} readOnly placeholder={DRIVER_ROLES[i].required ? 'Search ID/Name...' : 'Optional...'}
+                        disabled={isEditMode}
+                        className="flex-1 border border-border rounded-l px-2 py-1 text-table bg-white disabled:bg-bg disabled:text-text-muted" />
+                      <button onClick={() => setEmpSearchTarget(d.key)} disabled={isEditMode}
+                        className="px-2 py-1 border border-l-0 border-border rounded-r bg-gray-50 hover:bg-gray-100 text-xs disabled:opacity-50">
+                        Search
+                      </button>
+                    </div>
+                  </td>
+                  <td className="px-2 py-2">
+                    <input type="text" value={d.name} disabled placeholder="Auto" className="w-full border border-border rounded px-2 py-1 text-table bg-gray-50 text-text-muted" />
+                  </td>
+                  <td className="px-2 py-2">
+                    <input type="text" value={d.phone} onChange={e => {
+                      const val = e.target.value;
+                      setDrivers(prev => prev.map((dr, idx) => idx === i ? { ...dr, phone: val } : dr));
+                    }} placeholder="Phone" disabled={isEditMode}
+                      className="w-full border border-border rounded px-2 py-1 text-table disabled:bg-bg" />
+                  </td>
+                  <td className="text-center px-2 py-2">
+                    <input type="checkbox" checked={d.intern} onChange={e => {
+                      const val = e.target.checked;
+                      setDrivers(prev => prev.map((dr, idx) => idx === i ? { ...dr, intern: val } : dr));
+                    }} disabled={isEditMode} className="w-4 h-4 accent-primary" />
+                  </td>
+                  <td className="text-center px-2 py-2">
+                    {d.id ? (
+                      <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${d.licenseValid ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                        {d.licenseValid ? '✓ ' + t('shipmentForm.validLicense') : '✗ ' + t('shipmentForm.expiredLicense')}
+                      </span>
+                    ) : '—'}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </CollapsibleSection>
+
+      {/* ===== SECTION 6: STAGES & ROUTE PLAN ===== */}
+      <CollapsibleSection title={t('shipmentForm.stagesRoutePlan')} badge={`${t('shipmentForm.totalDistance')}: ${totalDistance} km`}>
+        <InfoStrip variant="info" icon="📍">
+          {t('shipmentForm.stagesInfo')}
+        </InfoStrip>
+        <div className="overflow-x-auto mt-3">
+          <table className="w-full text-table min-w-[900px]">
+            <thead>
+              <tr className="bg-gray-50 border-b border-border">
+                <th className="text-center px-2 py-2 font-semibold text-text-sec w-12">{t('shipmentForm.stageLabel')}</th>
+                <th className="text-left px-2 py-2 font-semibold text-text-sec w-20">{t('shipmentForm.depNo')}</th>
+                <th className="text-left px-2 py-2 font-semibold text-text-sec">{t('shipmentForm.departure')}</th>
+                <th className="text-left px-2 py-2 font-semibold text-text-sec w-20">{t('shipmentForm.destNo')}</th>
+                <th className="text-left px-2 py-2 font-semibold text-text-sec">{t('shipmentForm.destination')}</th>
+                <th className="text-center px-2 py-2 font-semibold text-text-sec w-28">{t('shipmentForm.type')}</th>
+                <th className="text-left px-2 py-2 font-semibold text-text-sec w-36">{t('shipmentForm.plannedArrival')}</th>
+                <th className="text-left px-2 py-2 font-semibold text-text-sec w-36">{t('shipmentForm.plannedDeparture')}</th>
+                <th className="text-center px-2 py-2 font-semibold text-text-sec w-16">{t('shipmentForm.distance')}</th>
+                <th className="text-center px-2 py-2 font-semibold text-text-sec w-20">{t('shipmentForm.actions')}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {stages.map((s, i) => (
+                <tr key={i} className="border-b border-border-light">
+                  <td className="text-center px-2 py-2">
+                    <span className={`inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-semibold text-white ${
+                      s.type === 'First' ? 'bg-blue-600' : s.type === 'Transport' ? 'bg-orange-500' : s.type === 'Loading Transfer' || s.type === 'Customer' ? 'bg-green-600' : 'bg-gray-500'
+                    }`}>{s.stage}</span>
+                  </td>
+                  <td className="px-2 py-2 text-xs font-mono text-text-muted">{s.depNo}</td>
+                  <td className="px-2 py-2 text-table">{s.departure}</td>
+                  <td className="px-2 py-2 text-xs font-mono text-text-muted">{s.destNo}</td>
+                  <td className="px-2 py-2 text-table">{s.destination}</td>
+                  <td className="text-center px-2 py-2">
+                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${stageTypeBadge[s.type] || 'bg-gray-100 text-gray-700'}`}>
+                      {s.type}
+                    </span>
+                  </td>
+                  <td className="px-2 py-2">
+                    <input type="datetime-local" value={s.plannedArr} onChange={e => {
+                      const val = e.target.value;
+                      setStages(prev => prev.map((st, idx) => idx === i ? { ...st, plannedArr: val } : st));
+                    }} className="w-full border border-border rounded px-1.5 py-1 text-xs" />
+                  </td>
+                  <td className="px-2 py-2">
+                    <input type="datetime-local" value={s.plannedDep} onChange={e => {
+                      const val = e.target.value;
+                      setStages(prev => prev.map((st, idx) => idx === i ? { ...st, plannedDep: val } : st));
+                    }} className="w-full border border-border rounded px-1.5 py-1 text-xs" />
+                  </td>
+                  <td className="text-center px-2 py-2 font-semibold">{s.distance ? `${s.distance} km` : '—'}</td>
+                  <td className="text-center px-2 py-2">
+                    {i > 0 && (
+                      <div className="flex gap-1 justify-center">
+                        <button onClick={() => handleStageSwap(i, 'up')} className="px-1.5 py-0.5 rounded border border-border bg-gray-50 hover:bg-gray-100 text-xs" title="Up">&uarr;</button>
+                        <button onClick={() => handleStageSwap(i, 'down')} className="px-1.5 py-0.5 rounded border border-border bg-gray-50 hover:bg-gray-100 text-xs" title="Down">&darr;</button>
+                      </div>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <div className="flex items-center justify-between mt-3">
+          <button onClick={addStage} className="px-3 py-1 rounded border border-border text-table text-text-sec hover:bg-bg">
+            {t('shipmentForm.addStage')}
+          </button>
+          <div className="text-table"><strong>{t('shipmentForm.totalDistance')}:</strong> <span className="text-primary font-bold">{totalDistance} km</span></div>
+        </div>
+      </CollapsibleSection>
+
+      {/* ===== SECTION 6B: TYPE-SPECIFIC DATA ===== */}
+
+      {/* --- NGV DATA --- */}
+      {currentProduct === 'NGV' && (
+        <CollapsibleSection title={t('shipmentForm.ngvData')} badge={t('shipmentForm.ngvTubeTrailer')}>
+          <InfoStrip variant="info" icon="ℹ️">
+            {t('shipmentForm.ngvInfo')}
+          </InfoStrip>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-3 mb-3">
+            <FormField label={t('shipmentForm.ngvReceiveDate')} type="datetime-local" value={ngvData.receiveDate} onChange={v => setNgvData(d => ({ ...d, receiveDate: v }))} required />
+            <FormField label={t('shipmentForm.ngvRefDate')} type="datetime-local" value={ngvData.refDate} onChange={v => setNgvData(d => ({ ...d, refDate: v }))} required />
+            <FormField label={t('shipmentForm.ngvDispatchDate')} type="datetime-local" value={ngvData.dispatchDate} onChange={v => setNgvData(d => ({ ...d, dispatchDate: v }))} />
+            <FormField label={t('shipmentForm.ngvRefNo')} value={ngvData.refNo} onChange={v => setNgvData(d => ({ ...d, refNo: v }))} placeholder="Reference No." />
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
+            <FormField label={t('shipmentForm.ngvCustNotify')} type="datetime-local" value={ngvData.custNotify} onChange={v => setNgvData(d => ({ ...d, custNotify: v }))} />
+            <FormField label={t('shipmentForm.ngvCustPSI')} type="number" value={ngvData.custPSI} onChange={v => setNgvData(d => ({ ...d, custPSI: v }))} placeholder="psi" />
+            <FormField label={t('shipmentForm.ngvPairedVehicle')} value={ngvData.pairedVehicle} onChange={v => setNgvData(d => ({ ...d, pairedVehicle: v }))} placeholder="ทะเบียนคู่รถ" />
+            <FormField label={t('shipmentForm.ngvSentFrom')} value={ngvData.sentFrom} onChange={v => setNgvData(d => ({ ...d, sentFrom: v }))} placeholder="Source / Origin" />
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
+            <FormField label={t('shipmentForm.ngvCustOrder')} value={ngvData.custOrder} onChange={v => setNgvData(d => ({ ...d, custOrder: v }))} placeholder="Customer Order No." />
+            <FormField label={t('shipmentForm.ngvBrokenTubeDate')} type="datetime-local" value={ngvData.brokenTubeDate} onChange={v => setNgvData(d => ({ ...d, brokenTubeDate: v }))} />
+            <FormField label={t('shipmentForm.ngvRemark')} value={ngvData.remark} onChange={v => setNgvData(d => ({ ...d, remark: v }))} placeholder="NGV Remark" />
+          </div>
+
+          {/* NGV Tube Data */}
+          <div className="mt-3">
+            <h4 className="text-table font-semibold text-green-700 mb-2">{t('shipmentForm.ngvTubeData')} — ตู้หลัก / ตู้เสา</h4>
+            <table className="w-full text-table border border-border-light rounded overflow-hidden">
+              <thead><tr className="bg-gray-50 border-b border-border">
+                <th className="text-left px-3 py-2 font-semibold text-text-sec w-24">ตู้</th>
+                <th className="text-left px-3 py-2 font-semibold text-text-sec">หมายเลขตู้</th>
+                <th className="text-left px-3 py-2 font-semibold text-text-sec">แรงดัน (PSI)</th>
+                <th className="text-left px-3 py-2 font-semibold text-text-sec">น้ำหนัก (KG)</th>
+                <th className="text-left px-3 py-2 font-semibold text-text-sec">อุณหภูมิ (°C)</th>
+                <th className="text-center px-3 py-2 font-semibold text-text-sec">สถานะ</th>
+              </tr></thead>
+              <tbody>
+                <tr className="bg-green-50 border-b border-border-light">
+                  <td className="px-3 py-2 font-bold text-green-700">ตู้หลัก</td>
+                  <td className="px-3 py-2"><input type="text" value={ngvData.mainTube.no} className="border border-border rounded px-2 py-1 text-xs w-24" readOnly /></td>
+                  <td className="px-3 py-2"><input type="number" value={ngvData.mainTube.psi} className="border border-border rounded px-2 py-1 text-xs w-16" readOnly /></td>
+                  <td className="px-3 py-2"><input type="number" value={ngvData.mainTube.weight} className="border border-border rounded px-2 py-1 text-xs w-16" readOnly /></td>
+                  <td className="px-3 py-2"><input type="number" value={ngvData.mainTube.temp} className="border border-border rounded px-2 py-1 text-xs w-14" readOnly /></td>
+                  <td className="text-center px-3 py-2"><span className="px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">✓ {t('shipmentForm.normalStatus')}</span></td>
+                </tr>
+                <tr className="border-b border-border-light">
+                  <td className="px-3 py-2 font-bold text-blue-700">ตู้เสา</td>
+                  <td className="px-3 py-2"><input type="text" value={ngvData.pillarTube.no} className="border border-border rounded px-2 py-1 text-xs w-24" readOnly /></td>
+                  <td className="px-3 py-2"><input type="number" value={ngvData.pillarTube.psi} className="border border-border rounded px-2 py-1 text-xs w-16" readOnly /></td>
+                  <td className="px-3 py-2"><input type="number" value={ngvData.pillarTube.weight} className="border border-border rounded px-2 py-1 text-xs w-16" readOnly /></td>
+                  <td className="px-3 py-2"><input type="number" value={ngvData.pillarTube.temp} className="border border-border rounded px-2 py-1 text-xs w-14" readOnly /></td>
+                  <td className="text-center px-3 py-2"><span className="px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">✓ {t('shipmentForm.normalStatus')}</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          {/* Quality Readings */}
+          <div className="mt-3">
+            <h4 className="text-table font-semibold text-green-700 mb-2">{t('shipmentForm.qualityReadings')} — อุณหภูมิ / ความดัน / ALC (4 จุดตรวจ)</h4>
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs min-w-[700px]">
+                <thead><tr className="bg-gray-50 border-b border-border">
+                  <th className="text-center px-2 py-2 w-8">#</th>
+                  <th className="text-left px-2 py-2 w-28">จุดตรวจ</th>
+                  <th className="text-left px-2 py-2 bg-green-50">อุณหภูมิ 1</th>
+                  <th className="text-left px-2 py-2 bg-green-50">อุณหภูมิ 2</th>
+                  <th className="text-left px-2 py-2 bg-blue-50">ความดัน (PSI)</th>
+                  <th className="text-left px-2 py-2 bg-orange-50">ALC 1 (%)</th>
+                  <th className="text-left px-2 py-2 bg-orange-50">ALC 2 (%)</th>
+                  <th className="text-left px-2 py-2">หมายเหตุ</th>
+                </tr></thead>
+                <tbody>
+                  {ngvData.qualityReadings.map((qr, i) => (
+                    <tr key={i} className="border-b border-border-light">
+                      <td className="text-center px-2 py-1.5 font-semibold">{i + 1}</td>
+                      <td className="px-2 py-1.5">
+                        <select className="border border-border rounded px-1 py-0.5 text-xs w-full">
+                          {NGV_QUALITY_STATIONS.map((st, si) => (
+                            <option key={si} value={st}>{st}</option>
+                          ))}
+                        </select>
+                      </td>
+                      <td className="px-2 py-1.5"><input type="number" defaultValue={0} step={0.1} className="border border-border rounded px-1 py-0.5 text-xs w-14" /></td>
+                      <td className="px-2 py-1.5"><input type="number" defaultValue={0} step={0.1} className="border border-border rounded px-1 py-0.5 text-xs w-14" /></td>
+                      <td className="px-2 py-1.5"><input type="number" defaultValue={0} className="border border-border rounded px-1 py-0.5 text-xs w-16" /></td>
+                      <td className="px-2 py-1.5"><input type="number" defaultValue={0} step={0.01} className="border border-border rounded px-1 py-0.5 text-xs w-14" /></td>
+                      <td className="px-2 py-1.5"><input type="number" defaultValue={0} step={0.01} className="border border-border rounded px-1 py-0.5 text-xs w-14" /></td>
+                      <td className="px-2 py-1.5"><input type="text" placeholder="Note" className="border border-border rounded px-1 py-0.5 text-xs w-full" /></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </CollapsibleSection>
+      )}
+
+      {/* --- FUEL/WO DATA --- */}
+      {currentProduct === 'FUEL' && (
+        <CollapsibleSection title={t('shipmentForm.fuelWOData')} badge={t('shipmentForm.fuelWOBadge')}>
+          <InfoStrip variant="info" icon="ℹ️">
+            {t('shipmentForm.fuelWOInfo')}
+          </InfoStrip>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-3 mb-3">
+            <div>
+              <label className="block text-xs font-medium text-text-sec mb-1"><span className="text-error">*</span> {t('shipmentForm.shipmentCustomer')}</label>
+              <div className="flex">
+                <input type="text" value={fuelData.shipCust} onChange={e => setFuelData(d => ({ ...d, shipCust: e.target.value }))} placeholder="Customer Code"
+                  className="flex-1 border border-border rounded-l px-2.5 py-1.5 text-table focus:outline-none focus:ring-1 focus:ring-primary" />
+                <button className="px-2.5 py-1.5 border border-l-0 border-border rounded-r bg-gray-50 hover:bg-gray-100 text-sm">{t('shipmentForm.search')}</button>
+              </div>
+            </div>
+            <FormField label={t('shipmentForm.custName')} value={fuelData.custName} disabled />
+            <FormField label={t('shipmentForm.custCode')} value={fuelData.custCode} disabled />
+          </div>
+
+          {/* Customer Delivery Table */}
+          <h4 className="text-table font-semibold text-blue-700 mb-2">{t('shipmentForm.customerDelivery')} — รายการจัดส่ง</h4>
+          <div className="overflow-x-auto border border-border-light rounded">
+            <table className="w-full text-xs min-w-[1100px]">
+              <thead><tr className="bg-gray-50 border-b border-border">
+                <th className="px-2 py-2 w-8">#</th>
+                <th className="px-2 py-2">Ship To</th><th className="px-2 py-2">Cust Name</th><th className="px-2 py-2">Cust Code</th><th className="px-2 py-2">Delivery No.</th>
+                <th className="px-2 py-2 bg-blue-50">Comp 1</th><th className="px-2 py-2 bg-blue-50">QTY 1</th><th className="px-2 py-2 bg-blue-50">Status 1</th>
+                <th className="px-2 py-2 bg-orange-50">Comp 2</th><th className="px-2 py-2 bg-orange-50">QTY 2</th><th className="px-2 py-2 bg-orange-50">Status 2</th>
+                <th className="px-2 py-2 bg-pink-50">Comp 3</th><th className="px-2 py-2 bg-pink-50">QTY 3</th><th className="px-2 py-2 bg-pink-50">Status 3</th>
+                <th className="px-2 py-2 bg-green-50">Comp 4</th><th className="px-2 py-2 bg-green-50">QTY 4</th><th className="px-2 py-2 bg-green-50">Status 4</th>
+              </tr></thead>
+              <tbody>
+                {fuelData.deliveries.map((del, i) => (
+                  <tr key={i} className="border-b border-border-light">
+                    <td className="text-center px-2 py-1.5">{i + 1}</td>
+                    <td className="px-2 py-1.5"><input type="text" value={del.shipTo} className="border border-border rounded px-1 py-0.5 text-xs w-16" readOnly /></td>
+                    <td className="px-2 py-1.5 text-xs">{del.name}</td>
+                    <td className="px-2 py-1.5 text-xs">{del.code}</td>
+                    <td className="px-2 py-1.5"><input type="text" value={del.deliveryNo} className="border border-border rounded px-1 py-0.5 text-xs w-24" readOnly /></td>
+                    {del.comps.map((c, ci) => (
+                      <React.Fragment key={ci}>
+                        <td className="px-2 py-1.5"><select className="border border-border rounded px-1 py-0.5 text-xs w-12"><option>{c.comp}</option></select></td>
+                        <td className="px-2 py-1.5"><input type="number" defaultValue={c.qty} className="border border-border rounded px-1 py-0.5 text-xs w-16" /></td>
+                        <td className="px-2 py-1.5"><select className="border border-border rounded px-1 py-0.5 text-xs w-16"><option>{c.status}</option><option>N ยกเลิก</option><option>P รอดำเนิน</option></select></td>
+                      </React.Fragment>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <button onClick={() => setFuelData(d => ({ ...d, deliveries: [...d.deliveries, { shipTo: '', name: '', code: '', deliveryNo: '', comps: [{ comp: '—', qty: 0, status: '—' }, { comp: '—', qty: 0, status: '—' }, { comp: '—', qty: 0, status: '—' }, { comp: '—', qty: 0, status: '—' }] }] }))} className="mt-2 px-3 py-1 rounded border border-border text-table text-text-sec hover:bg-bg text-xs">{t('shipmentForm.addDelivery')}</button>
+
+          {/* Fuel Price Reference */}
+          <div className="mt-3 p-3 bg-gray-50 border border-border rounded-lg">
+            <div className="flex gap-4 items-center text-xs">
+              <span className="font-semibold text-text-sec">{t('shipmentForm.fuelPriceRef')}:</span>
+              <span>Type: <strong>DIEB07</strong></span>
+              <span>Rate: <strong>D (รายวัน)</strong></span>
+              <span>Comp: <strong>PTT</strong></span>
+              <span>Price: <strong className="text-primary">฿30.44</strong></span>
+              <span className="text-text-muted">Date: 25.12.2025</span>
+            </div>
+          </div>
+        </CollapsibleSection>
+      )}
+
+      {/* --- CONTAINER DATA --- */}
+      {currentProduct === 'CONTAINER' && (
+        <CollapsibleSection title={t('shipmentForm.containerData')} badge={t('shipmentForm.containerTransport')}>
+          <InfoStrip variant="info" icon="ℹ️">
+            {t('shipmentForm.containerInfo')}
+          </InfoStrip>
+          <h4 className="text-table font-semibold text-orange-700 mt-3 mb-2">{t('shipmentForm.partyAssignments')}</h4>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-2">
+            {['Ship To', 'Sold To', 'Payer', 'Bill To'].map((lbl, i) => (
+              <div key={i}>
+                <label className="block text-xs font-medium text-text-sec mb-1">{i < 2 && <span className="text-error">* </span>}{lbl}</label>
+                <div className="flex">
+                  <input type="text" placeholder={`${lbl} Code`} className="flex-1 border border-border rounded-l px-2 py-1.5 text-table focus:outline-none focus:ring-1 focus:ring-primary" />
+                  <button className="px-2 py-1.5 border border-l-0 border-border rounded-r bg-gray-50 hover:bg-gray-100 text-xs">Search</button>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
+            <FormField label={t('shipmentForm.shipToName')} value={containerData.shipToName} disabled />
+            <FormField label={t('shipmentForm.soldToName')} value={containerData.soldToName} disabled />
+            <FormField label={t('shipmentForm.payerName')} value={containerData.payerName} disabled />
+            <FormField label={t('shipmentForm.billToName')} value={containerData.billToName} disabled />
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
+            <FormField label={t('shipmentForm.bookingRef')} value={containerData.booking} onChange={v => setContainerData(d => ({ ...d, booking: v }))} placeholder="BKG-EV-2026-0142" />
+            <FormField label={t('shipmentForm.shippingLine')} value={containerData.shippingLine} onChange={v => setContainerData(d => ({ ...d, shippingLine: v }))} placeholder="Evergreen / ONE / Hapag" />
+            <FormField label={t('shipmentForm.vesselVoyage')} value={containerData.vessel} onChange={v => setContainerData(d => ({ ...d, vessel: v }))} placeholder="MV EVER GIVEN / V.123" />
+            <FormField label={t('shipmentForm.noContainers')} type="number" value={containerData.containerCount} onChange={v => setContainerData(d => ({ ...d, containerCount: v }))} required />
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
+            <FormField label="Remark 1" value={containerData.remark1} onChange={v => setContainerData(d => ({ ...d, remark1: v }))} />
+            <FormField label="Remark 2" value={containerData.remark2} onChange={v => setContainerData(d => ({ ...d, remark2: v }))} />
+          </div>
+
+          {/* Container List */}
+          <h4 className="text-table font-semibold text-orange-700 mb-2">{t('shipmentForm.containerList')}</h4>
+          <div className="overflow-x-auto border border-border-light rounded">
+            <table className="w-full text-xs">
+              <thead><tr className="bg-gray-50 border-b border-border">
+                <th className="px-2 py-2 w-8">#</th><th className="px-2 py-2">Container No.</th><th className="px-2 py-2">Size</th><th className="px-2 py-2">Type</th>
+                <th className="px-2 py-2">Seal No.</th><th className="px-2 py-2">Weight (kg)</th><th className="px-2 py-2">Tare (kg)</th><th className="px-2 py-2">VGM (kg)</th><th className="px-2 py-2">Status</th>
+              </tr></thead>
+              <tbody>
+                {containerData.containers.map((c, i) => (
+                  <tr key={i} className="border-b border-border-light">
+                    <td className="text-center px-2 py-1.5">{i + 1}</td>
+                    <td className="px-2 py-1.5"><input type="text" value={c.no} className="border border-border rounded px-1 py-0.5 text-xs w-32" readOnly /></td>
+                    <td className="px-2 py-1.5"><select className="border border-border rounded px-1 py-0.5 text-xs">
+                      {['40ft HC', '40ft GP', '20ft GP', '20ft HC', '40ft RF', '45ft HC'].map(s => <option key={s}>{s}</option>)}
+                    </select></td>
+                    <td className="px-2 py-1.5"><select className="border border-border rounded px-1 py-0.5 text-xs"><option>FCL</option><option>LCL</option><option>Empty</option></select></td>
+                    <td className="px-2 py-1.5"><input type="text" placeholder="Seal No." className="border border-border rounded px-1 py-0.5 text-xs w-24" /></td>
+                    <td className="px-2 py-1.5"><input type="number" defaultValue={c.weight} className="border border-border rounded px-1 py-0.5 text-xs w-16" /></td>
+                    <td className="px-2 py-1.5"><input type="number" defaultValue={c.tare} className="border border-border rounded px-1 py-0.5 text-xs w-16" /></td>
+                    <td className="px-2 py-1.5"><input type="number" defaultValue={c.vgm} className="border border-border rounded px-1 py-0.5 text-xs w-16" /></td>
+                    <td className="px-2 py-1.5"><span className="px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">{t('shipmentForm.loaded')}</span></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <button onClick={() => setContainerData(d => ({ ...d, containers: [...d.containers, { no: '', size: '40ft HC', type: 'FCL', seal: '', weight: 0, tare: 0, vgm: 0 }] }))} className="mt-2 px-3 py-1 rounded border border-border text-table text-text-sec hover:bg-bg text-xs">{t('shipmentForm.addContainer')}</button>
+        </CollapsibleSection>
+      )}
+
+      {/* --- CAR CARRIER DATA --- */}
+      {currentProduct === 'SCA' && (
+        <CollapsibleSection title={t('shipmentForm.carCarrierData')} badge={t('shipmentForm.scaCarCarrier')}>
+          <InfoStrip variant="info" icon="ℹ️">
+            {t('shipmentForm.scaInfo')}
+          </InfoStrip>
+          <h4 className="text-table font-semibold text-amber-700 mt-3 mb-2">{t('shipmentForm.shipmentParams')}</h4>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
+            <FormField label="Yard No." type="select" value={scaData.yardNo} onChange={v => setScaData(d => ({ ...d, yardNo: v }))} options={YARD_OPTIONS} required placeholder="— Select Yard —" />
+            <FormField label="Trans. Type" type="select" value={scaData.transType} onChange={v => setScaData(d => ({ ...d, transType: v }))}
+              options={[{ value: 'I', label: 'I — Gate In' }, { value: 'O', label: 'O — Gate Out' }, { value: 'R', label: 'R — Round Trip' }]} />
+            <FormField label="Calling No." value={scaData.callingNo} onChange={v => setScaData(d => ({ ...d, callingNo: v }))} placeholder="e.g. CALL-2026-0142" />
+            <div>
+              <label className="block text-xs font-medium text-text-sec mb-1">Group No. / Trip</label>
+              <div className="flex gap-1">
+                <input type="text" value={scaData.groupNo} onChange={e => setScaData(d => ({ ...d, groupNo: e.target.value }))} placeholder="Group" className="flex-1 border border-border rounded px-2 py-1.5 text-table focus:outline-none focus:ring-1 focus:ring-primary" />
+                <input type="text" value={scaData.trip} onChange={e => setScaData(d => ({ ...d, trip: e.target.value }))} placeholder="Trip" className="w-16 border border-border rounded px-2 py-1.5 text-table focus:outline-none focus:ring-1 focus:ring-primary" />
+              </div>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
+            <FormField label="Transport Fee" type="select" value={scaData.transportFee} onChange={v => setScaData(d => ({ ...d, transportFee: v }))} options={SCA_TRANSPORT_FEE_OPTIONS} />
+            <FormField label="Trip Pay" type="select" value={scaData.tripPay} onChange={v => setScaData(d => ({ ...d, tripPay: v }))} options={SCA_TRIP_PAY_OPTIONS} />
+            <FormField label={t('shipmentForm.shipType')} value="01 — Truck" disabled />
+            <div className="flex items-end pb-1">
+              <label className="flex items-center gap-2 px-3 py-2 bg-amber-50 border border-amber-200 rounded">
+                <input type="checkbox" checked={scaData.brokenMiles} onChange={e => setScaData(d => ({ ...d, brokenMiles: e.target.checked }))} className="w-4 h-4 accent-orange-600" />
+                <span className="text-table font-medium text-orange-700">ไมล์เสีย (Broken Miles)</span>
+              </label>
+            </div>
+          </div>
+
+          {/* 11-Position Visual Layout */}
+          <h4 className="text-table font-semibold text-amber-700 mt-3 mb-2">{t('shipmentForm.positionLayout')} — ตำแหน่งบนรถ</h4>
+          <div className="flex gap-4 items-start mb-3 p-3 bg-amber-50 border border-amber-100 rounded-lg">
+            <div className="flex-shrink-0">
+              <div className="text-xs text-text-muted text-center mb-1">{t('shipmentForm.carCarrier11')}</div>
+              <div className="w-64 bg-white border-2 border-amber-500 rounded-lg p-2">
+                <div className="text-xs font-semibold text-amber-700 mb-1">▲ {t('shipmentForm.upperDeck')}</div>
+                <div className="grid grid-cols-3 gap-1 mb-2">
+                  {SCA_POSITIONS.upper.map(pos => {
+                    const hasVehicle = scaData.vehicles.some(v => v.pos === pos);
+                    return (
+                      <div key={pos} className={`text-center py-1 rounded text-xs font-semibold border ${hasVehicle ? 'bg-green-50 border-green-400 text-green-700' : 'bg-gray-100 border-gray-300 text-gray-500'}`}>
+                        {pos}<br /><span className="text-[10px]">{hasVehicle ? '✓' : '—'}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+                <div className="text-xs font-semibold text-amber-900 mb-1">▼ {t('shipmentForm.lowerDeck')}</div>
+                <div className="grid grid-cols-3 gap-1">
+                  {SCA_POSITIONS.lower.map(pos => {
+                    const hasVehicle = scaData.vehicles.some(v => v.pos === pos);
+                    return (
+                      <div key={pos} className={`text-center py-1 rounded text-xs font-semibold border ${hasVehicle ? 'bg-green-50 border-green-400 text-green-700' : 'bg-gray-100 border-gray-300 text-gray-500'}`}>
+                        {pos}<br /><span className="text-[10px]">{hasVehicle ? '✓' : '—'}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+              <div className="text-xs text-center mt-1 text-text-muted">{t('shipmentForm.loadedSlots')}: <strong className="text-green-600">{scaData.vehicles.length}</strong> / 11 {t('shipmentForm.slots')}</div>
+            </div>
+
+            {/* Position Summary Table */}
+            <div className="flex-1 overflow-x-auto">
+              <table className="w-full text-xs">
+                <thead><tr className="bg-white border-b border-border"><th className="px-2 py-1.5 w-10">Pos</th><th className="px-2 py-1.5">VIN No.</th><th className="px-2 py-1.5">Model</th><th className="px-2 py-1.5">Ship To</th><th className="px-2 py-1.5 w-12">Status</th></tr></thead>
+                <tbody>
+                  {scaData.vehicles.map((v, i) => (
+                    <tr key={i} className="border-b border-border-light">
+                      <td className="text-center px-2 py-1 font-semibold text-amber-700">{v.pos}</td>
+                      <td className="px-2 py-1">{v.vin}</td>
+                      <td className="px-2 py-1">{v.model}</td>
+                      <td className="px-2 py-1">{v.shipToName}</td>
+                      <td className="text-center px-2 py-1"><span className="px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-green-100 text-green-700">✓</span></td>
+                    </tr>
+                  ))}
+                  {[...SCA_POSITIONS.upper, ...SCA_POSITIONS.lower].filter(pos => !scaData.vehicles.some(v => v.pos === pos)).map(pos => (
+                    <tr key={pos} className="border-b border-border-light opacity-40">
+                      <td className="text-center px-2 py-1">{pos}</td>
+                      <td colSpan={3} className="px-2 py-1 text-text-muted">— {t('shipmentForm.emptySlot')} —</td>
+                      <td></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Vehicle Data Table */}
+          <h4 className="text-table font-semibold text-amber-700 mb-2">{t('shipmentForm.vehicleData')} — รายการรถที่ขนส่ง</h4>
+          <div className="overflow-x-auto border border-border-light rounded">
+            <table className="w-full text-xs min-w-[1150px]">
+              <thead><tr className="bg-gray-50 border-b border-border">
+                <th className="px-1.5 py-2 w-8">No.</th><th className="px-1.5 py-2 w-8">Del.</th><th className="px-1.5 py-2 w-8">Pos</th>
+                <th className="px-1.5 py-2">VIN No.</th><th className="px-1.5 py-2">Model</th><th className="px-1.5 py-2">Engine No.</th><th className="px-1.5 py-2">Color</th>
+                <th className="px-1.5 py-2">Sold To</th><th className="px-1.5 py-2">Dealer Address</th><th className="px-1.5 py-2">Ship To</th><th className="px-1.5 py-2">Ship To Name</th>
+                <th className="px-1.5 py-2">Calling</th><th className="px-1.5 py-2 w-20">{t('shipmentForm.returnTruck')}</th>
+              </tr></thead>
+              <tbody>
+                {scaData.vehicles.map((v, i) => (
+                  <tr key={i} className="border-b border-border-light">
+                    <td className="text-center px-1.5 py-1.5">{i + 1}</td>
+                    <td className="text-center px-1.5 py-1.5"><span className="inline-block w-3.5 h-3.5 bg-yellow-300 border border-gray-300 rounded-sm"></span></td>
+                    <td className="text-center px-1.5 py-1.5 font-semibold text-amber-700">{v.pos}</td>
+                    <td className="px-1.5 py-1.5"><input type="text" value={v.vin} className="border border-border rounded px-1 py-0.5 text-xs w-28" readOnly /></td>
+                    <td className="px-1.5 py-1.5"><input type="text" value={v.model} className="border border-border rounded px-1 py-0.5 text-xs w-20" readOnly /></td>
+                    <td className="px-1.5 py-1.5"><input type="text" placeholder="Engine No." className="border border-border rounded px-1 py-0.5 text-xs w-20" /></td>
+                    <td className="px-1.5 py-1.5"><input type="text" value={v.color} className="border border-border rounded px-1 py-0.5 text-xs w-14" readOnly /></td>
+                    <td className="px-1.5 py-1.5 text-[11px]">{v.soldTo}</td>
+                    <td className="px-1.5 py-1.5 text-[11px]">{v.dealer}</td>
+                    <td className="px-1.5 py-1.5 text-[11px]">{v.shipTo}</td>
+                    <td className="px-1.5 py-1.5 text-[11px]">{v.shipToName}</td>
+                    <td className="px-1.5 py-1.5"><input type="text" placeholder="Calling" className="border border-border rounded px-1 py-0.5 text-xs w-16" /></td>
+                    <td className="px-1.5 py-1.5">
+                      <select className="border border-border rounded px-1 py-0.5 text-xs w-full">
+                        <option>{t('shipmentForm.notReturnTruck')}</option>
+                        <option>{t('shipmentForm.returnTruck')}</option>
+                      </select>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Collection Status Summary */}
+          <h4 className="text-table font-semibold text-amber-700 mt-3 mb-2">สถานะเก็บเงิน (Collection Status Summary)</h4>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 p-3 bg-gray-50 border border-border rounded-lg">
+            <div className="text-center p-3 bg-white rounded border border-border-light">
+              <div className="text-xs text-text-muted">{t('shipmentForm.totalVehicles')}</div>
+              <div className="text-2xl font-bold text-amber-700">{scaData.vehicles.length}</div>
+            </div>
+            <div className="text-center p-3 bg-white rounded border border-border-light">
+              <div className="text-xs text-text-muted">{t('shipmentForm.shipToDestinations')}</div>
+              <div className="text-2xl font-bold text-blue-700">1</div>
+              <div className="text-xs text-text-muted">LCB แหลมฉบัง</div>
+            </div>
+            <div className="text-center p-3 bg-white rounded border border-border-light">
+              <div className="text-xs text-text-muted">{t('shipmentForm.soldToLabel')}</div>
+              <div className="text-2xl font-bold text-purple-700">1</div>
+              <div className="text-xs text-text-muted">1100297</div>
+            </div>
+            <div className="text-center p-3 bg-green-50 rounded border border-green-200">
+              <div className="text-xs text-text-muted">{t('shipmentForm.collectionFlag')}</div>
+              <div className="text-sm font-bold text-green-700">✓ {scaData.transportFee}</div>
+              <div className="text-xs text-text-muted">{t('shipmentForm.soSettlementReady')}</div>
+            </div>
+          </div>
+        </CollapsibleSection>
+      )}
+
+      {/* ===== SECTION 7: TRANSPORT FEE & TRIP PAY ===== */}
+      <CollapsibleSection title={t('shipmentForm.transportFeeSection')}>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
+          <div>
+            <FormField label="ค่าขนส่ง (Transport Fee)" type="select" value={form.transportFee} onChange={v => updateForm('transportFee', v)}
+              options={[{ value: 'เก็บ', label: 'เก็บ (Collect)' }, { value: 'ไม่เก็บ', label: 'ไม่เก็บ (No Collect)' }]} />
+            <span className="text-xs text-text-muted">Default: เก็บ · บาท/ลิตร, เพิ่มเติม รถเช่า</span>
+          </div>
+          <div>
+            <FormField label="ค่าเที่ยว (Trip Pay)" type="select" value={form.tripPay} onChange={v => updateForm('tripPay', v)}
+              options={[{ value: 'จ่าย', label: 'จ่าย (Pay)' }, { value: 'ไม่จ่าย', label: 'ไม่จ่าย (No Pay)' }]} />
+            <span className="text-xs text-text-muted">Default: จ่าย · บาท/รอบ</span>
+          </div>
+        </div>
+        <label className="flex items-center gap-2 px-4 py-3 bg-amber-50 border border-amber-200 rounded-lg w-fit">
+          <input type="checkbox" checked={form.brokenMiles} onChange={e => updateForm('brokenMiles', e.target.checked)} className="w-4 h-4 accent-orange-600" />
+          <span className="text-table font-medium text-orange-700">ไม่คิดเสีย (Broken Miles)</span>
+          <span className="text-xs text-text-muted ml-2">— If checked, validates with broken miles criteria (config 004, 005)</span>
+        </label>
+      </CollapsibleSection>
+
+      {/* ===== FOOTER ===== */}
+      <div className="sticky bottom-0 bg-white border-t border-border py-3 px-4 flex items-center justify-between rounded-lg shadow-lg z-10">
+        <div className="flex gap-4 text-table text-text-muted">
+          <span>{t('shipmentForm.statusLabel')}: <strong className="text-text">{isEditMode ? shipment?.status || 'OPEN' : t('shipmentForm.newStatus')}</strong></span>
+          <span>|</span>
+          <span>{t('shipmentForm.fosLabel')}: <strong className="text-text">{consolidatedFOs.length + (selectedFO ? 1 : 0)}</strong></span>
+          <span>|</span>
+          <span>{t('shipmentForm.totalQty')}: <strong className="text-text">{selectedFO?.qty || '—'}</strong></span>
+        </div>
+        <div className="flex gap-2">
+          <button onClick={onBack} className="px-4 py-1.5 rounded border border-border text-table text-text-sec hover:bg-bg">
+            {t('shipmentForm.cancel')}
+          </button>
+          <button onClick={handleSave} className="px-4 py-1.5 rounded border border-border text-table text-text-sec hover:bg-bg">
+            {t('shipmentForm.saveDraft')}
+          </button>
+          {!isEditMode ? (
+            <>
+              <button onClick={handleSave} className="px-4 py-1.5 rounded bg-primary text-white text-table font-medium hover:bg-primary-hover">
+                {t('shipmentForm.createShipment')}
+              </button>
+              <button onClick={handleDispatch} className="px-4 py-1.5 rounded bg-success text-white text-table font-medium hover:bg-green-700">
+                {t('shipmentForm.createAndDispatch')}
+              </button>
+            </>
+          ) : (
+            <>
+              <button onClick={handleSave} className="px-4 py-1.5 rounded bg-primary text-white text-table font-medium hover:bg-primary-hover">
+                {t('shipmentForm.saveChanges')}
+              </button>
+              <button onClick={handleDispatch} className="px-4 py-1.5 rounded bg-success text-white text-table font-medium hover:bg-green-700">
+                {t('shipmentForm.dispatch')}
+              </button>
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* ===== MODALS ===== */}
+      <TruckSearchModal open={showTruckSearch} onClose={() => setShowTruckSearch(false)} onSelect={handleTruckSelect} />
+      <FleetSuggestModal open={showFleetSuggest} onClose={() => setShowFleetSuggest(false)} onSelect={handleTruckSelect} product={currentProduct} />
+      <EmployeeSearchModal open={!!empSearchTarget} onClose={() => setEmpSearchTarget(null)} onSelect={handleEmployeeSelect}
+        roleFilter={empSearchTarget?.startsWith('helper') ? 'helper' : 'driver'} />
+      <StageSwapModal open={!!showStageSwap} onClose={() => setShowStageSwap(null)}
+        stageIndex={showStageSwap?.index} direction={showStageSwap?.direction} onConfirm={confirmStageSwap} />
+    </div>
+  );
+}
