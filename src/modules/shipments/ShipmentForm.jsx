@@ -4,7 +4,7 @@ import { useApp } from '../../contexts/AppContext';
 import CollapsibleSection from '../../components/common/CollapsibleSection';
 import FormField from '../../components/common/FormField';
 import InfoStrip from '../../components/common/InfoStrip';
-import { ProductBadge } from '../../components/common/Badge';
+import { ProductBadge, SourceBadge } from '../../components/common/Badge';
 import { generateId } from '../../utils/helpers';
 import TruckSearchModal from './TruckSearchModal';
 import FleetSuggestModal from './FleetSuggestModal';
@@ -156,11 +156,12 @@ export default function ShipmentForm({ shipment, selectedFO, channel, onBack, is
     shipTo: '', soldTo: '', payer: '', billTo: '',
     shipToName: 'ท่าเรือกรุงเทพ', soldToName: 'Evergreen Line (TH)',
     payerName: '', billToName: '',
-    booking: 'BKG-EV-2026-0142', shippingLine: '', vessel: '', containerCount: 2,
+    booking: 'BKG-EV-2026-0142', blNo: '', shippingLine: '', vessel: '', containerCount: 2,
+    portOfLoading: '', portOfDischarge: '', placeOfDelivery: '',
     remark1: '', remark2: '',
     containers: [
-      { no: 'EGHU1234567', size: '40ft HC', type: 'FCL', seal: '', weight: 24500, tare: 3800, vgm: 28300 },
-      { no: 'EGHU7654321', size: '40ft HC', type: 'FCL', seal: '', weight: 22100, tare: 3800, vgm: 25900 },
+      { no: 'EGHU1234567', size: '40ft HC', type: 'FCL', containerType: 'Dry', seal: '', weight: 24500, tare: 3800, vgm: 28300, temp: '', status: 'Loaded' },
+      { no: 'EGHU7654321', size: '40ft HC', type: 'FCL', containerType: 'Dry', seal: '', weight: 22100, tare: 3800, vgm: 25900, temp: '', status: 'Loaded' },
     ],
   });
 
@@ -381,6 +382,46 @@ export default function ShipmentForm({ shipment, selectedFO, channel, onBack, is
           </div>
         </div>
       </div>
+
+      {/* ===== ORDER SUMMARY (shown when coming from capture flow, hidden for manual) ===== */}
+      {(selectedFO || (channel && channel.key !== 'manual')) && !isEditMode && (
+        <CollapsibleSection title="Order Summary">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div>
+              <span className="text-xs text-text-muted block">Source</span>
+              <SourceBadge source={shipment?.source || channel?.key || 'Manual Entry'} />
+            </div>
+            <div>
+              <span className="text-xs text-text-muted block">{t('shipmentForm.businessUnit')}</span>
+              <span className="font-medium text-table">{form.bu || selectedFO?.bu || '—'}</span>
+            </div>
+            <div>
+              <span className="text-xs text-text-muted block">{t('shipmentForm.productType')}</span>
+              <ProductBadge product={currentProduct} />
+            </div>
+            <div>
+              <span className="text-xs text-text-muted block">{t('shipmentForm.customer')}</span>
+              <span className="font-medium text-table">{selectedFO?.customer || shipment?.customer || '—'}</span>
+            </div>
+            <div>
+              <span className="text-xs text-text-muted block">{t('shipmentForm.route')}</span>
+              <span className="font-medium text-table">{selectedFO?.route || form.route || '—'}</span>
+            </div>
+            <div>
+              <span className="text-xs text-text-muted block">{t('shipmentForm.quantity')}</span>
+              <span className="font-medium text-table">{selectedFO?.qty || shipment?.totalQty?.toLocaleString() || '—'}</span>
+            </div>
+            <div>
+              <span className="text-xs text-text-muted block">{t('shipmentForm.plannedDate')}</span>
+              <span className="font-medium text-table">{selectedFO?.date || form.plannedDate?.split('T')[0] || '—'}</span>
+            </div>
+            <div>
+              <span className="text-xs text-text-muted block">{t('shipmentForm.contractWBS')}</span>
+              <span className="font-medium text-table">{selectedFO?.wbs || form.wbs || '—'}</span>
+            </div>
+          </div>
+        </CollapsibleSection>
+      )}
 
       {/* ===== SECTION 1: BU & PRODUCT (only for non-FO create) ===== */}
       {!selectedFO && !isEditMode && (
@@ -918,6 +959,38 @@ export default function ShipmentForm({ shipment, selectedFO, channel, onBack, is
           </div>
           <button onClick={() => setFuelData(d => ({ ...d, deliveries: [...d.deliveries, { shipTo: '', name: '', code: '', deliveryNo: '', comps: Array.from({ length: 8 }, () => ({ comp: '—', qty: 0, status: '—' })) }] }))} className="mt-2 px-3 py-1 rounded border border-border text-table text-text-sec hover:bg-bg text-xs">{t('shipmentForm.addDelivery')}</button>
 
+          {/* Compartment Data per Stage */}
+          {stages.length > 0 && (
+            <div className="mt-4">
+              <h4 className="text-table font-semibold text-orange-700 mb-2">Compartment Data per Stage</h4>
+              <div className="overflow-x-auto border border-border-light rounded">
+                <table className="w-full text-xs">
+                  <thead><tr className="bg-orange-50 border-b border-border">
+                    <th className="px-2 py-2">#</th><th className="px-2 py-2">Destination</th><th className="px-2 py-2">Ship-To</th><th className="px-2 py-2">Type</th><th className="px-2 py-2">Delivery No.</th>
+                    <th className="px-2 py-2 bg-blue-50">Comp 1</th><th className="px-2 py-2 bg-orange-50">Comp 2</th><th className="px-2 py-2 bg-pink-50">Comp 3</th>
+                  </tr></thead>
+                  <tbody>
+                    {stages.filter(s => s.type === 'Transport' || s.type === 'Customer').map((s, i) => (
+                      <tr key={i} className="border-b border-border-light">
+                        <td className="text-center px-2 py-1.5">{i + 1}</td>
+                        <td className="px-2 py-1.5 font-medium">{s.destination}</td>
+                        <td className="px-2 py-1.5"><input type="text" placeholder="Ship-To" className="border border-border rounded px-1 py-0.5 text-xs w-16" /></td>
+                        <td className="px-2 py-1.5"><select className="border border-border rounded px-1 py-0.5 text-xs"><option>Diesel B7</option><option>G95</option><option>G91</option><option>Diesel B20</option></select></td>
+                        <td className="px-2 py-1.5"><input type="text" placeholder="Delivery No." className="border border-border rounded px-1 py-0.5 text-xs w-24" /></td>
+                        {[1,2,3].map(n => (
+                          <td key={n} className="px-2 py-1.5"><input type="number" placeholder={`Comp ${n}`} className="border border-border rounded px-1 py-0.5 text-xs w-16" /></td>
+                        ))}
+                      </tr>
+                    ))}
+                    {stages.filter(s => s.type === 'Transport' || s.type === 'Customer').length === 0 && (
+                      <tr><td colSpan={8} className="text-center py-3 text-text-muted">No delivery stages configured. Add stages above.</td></tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
           {/* Fuel Price Reference */}
           <div className="mt-3 p-3 bg-gray-50 border border-border rounded-lg">
             <div className="flex gap-4 items-center text-xs">
@@ -962,6 +1035,12 @@ export default function ShipmentForm({ shipment, selectedFO, channel, onBack, is
             <FormField label={t('shipmentForm.vesselVoyage')} value={containerData.vessel} onChange={v => setContainerData(d => ({ ...d, vessel: v }))} placeholder="MV EVER GIVEN / V.123" />
             <FormField label={t('shipmentForm.noContainers')} type="number" value={containerData.containerCount} onChange={v => setContainerData(d => ({ ...d, containerCount: v }))} required />
           </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
+            <FormField label="BL No." value={containerData.blNo} onChange={v => setContainerData(d => ({ ...d, blNo: v }))} placeholder="Bill of Lading No." />
+            <FormField label="Port of Loading" value={containerData.portOfLoading} onChange={v => setContainerData(d => ({ ...d, portOfLoading: v }))} placeholder="e.g. Bangkok" />
+            <FormField label="Port of Discharge" value={containerData.portOfDischarge} onChange={v => setContainerData(d => ({ ...d, portOfDischarge: v }))} placeholder="e.g. Singapore" />
+            <FormField label="Place of Delivery" value={containerData.placeOfDelivery} onChange={v => setContainerData(d => ({ ...d, placeOfDelivery: v }))} placeholder="Final destination" />
+          </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
             <FormField label="Remark 1" value={containerData.remark1} onChange={v => setContainerData(d => ({ ...d, remark1: v }))} />
             <FormField label="Remark 2" value={containerData.remark2} onChange={v => setContainerData(d => ({ ...d, remark2: v }))} />
@@ -973,28 +1052,34 @@ export default function ShipmentForm({ shipment, selectedFO, channel, onBack, is
             <table className="w-full text-xs">
               <thead><tr className="bg-gray-50 border-b border-border">
                 <th className="px-2 py-2 w-8">#</th><th className="px-2 py-2">Container No.</th><th className="px-2 py-2">Size</th><th className="px-2 py-2">Type</th>
-                <th className="px-2 py-2">Seal No.</th><th className="px-2 py-2">Weight (kg)</th><th className="px-2 py-2">Tare (kg)</th><th className="px-2 py-2">VGM (kg)</th><th className="px-2 py-2">Status</th>
+                <th className="px-2 py-2">Container Type</th><th className="px-2 py-2">Seal No.</th><th className="px-2 py-2">Weight (kg)</th><th className="px-2 py-2">Tare (kg)</th><th className="px-2 py-2">VGM (kg)</th><th className="px-2 py-2">Temp</th><th className="px-2 py-2">Status</th>
               </tr></thead>
               <tbody>
                 {containerData.containers.map((c, i) => (
                   <tr key={i} className="border-b border-border-light">
                     <td className="text-center px-2 py-1.5">{i + 1}</td>
-                    <td className="px-2 py-1.5"><input type="text" value={c.no} className="border border-border rounded px-1 py-0.5 text-xs w-32" readOnly /></td>
-                    <td className="px-2 py-1.5"><select className="border border-border rounded px-1 py-0.5 text-xs">
-                      {['40ft HC', '40ft GP', '20ft GP', '20ft HC', '40ft RF', '45ft HC'].map(s => <option key={s}>{s}</option>)}
+                    <td className="px-2 py-1.5"><input type="text" value={c.no} onChange={e => setContainerData(d => ({ ...d, containers: d.containers.map((cc, ci) => ci === i ? { ...cc, no: e.target.value } : cc) }))} className="border border-border rounded px-1 py-0.5 text-xs w-32" /></td>
+                    <td className="px-2 py-1.5"><select value={c.size} onChange={e => setContainerData(d => ({ ...d, containers: d.containers.map((cc, ci) => ci === i ? { ...cc, size: e.target.value } : cc) }))} className="border border-border rounded px-1 py-0.5 text-xs">
+                      {['20ft', '40ft', '40ft HC', '45ft'].map(s => <option key={s}>{s}</option>)}
                     </select></td>
-                    <td className="px-2 py-1.5"><select className="border border-border rounded px-1 py-0.5 text-xs"><option>FCL</option><option>LCL</option><option>Empty</option></select></td>
-                    <td className="px-2 py-1.5"><input type="text" placeholder="Seal No." className="border border-border rounded px-1 py-0.5 text-xs w-24" /></td>
-                    <td className="px-2 py-1.5"><input type="number" defaultValue={c.weight} className="border border-border rounded px-1 py-0.5 text-xs w-16" /></td>
-                    <td className="px-2 py-1.5"><input type="number" defaultValue={c.tare} className="border border-border rounded px-1 py-0.5 text-xs w-16" /></td>
-                    <td className="px-2 py-1.5"><input type="number" defaultValue={c.vgm} className="border border-border rounded px-1 py-0.5 text-xs w-16" /></td>
-                    <td className="px-2 py-1.5"><span className="px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">{t('shipmentForm.loaded')}</span></td>
+                    <td className="px-2 py-1.5"><select value={c.type} onChange={e => setContainerData(d => ({ ...d, containers: d.containers.map((cc, ci) => ci === i ? { ...cc, type: e.target.value } : cc) }))} className="border border-border rounded px-1 py-0.5 text-xs"><option>FCL</option><option>LCL</option><option>Empty</option></select></td>
+                    <td className="px-2 py-1.5"><select value={c.containerType} onChange={e => setContainerData(d => ({ ...d, containers: d.containers.map((cc, ci) => ci === i ? { ...cc, containerType: e.target.value } : cc) }))} className="border border-border rounded px-1 py-0.5 text-xs">
+                      {['Dry', 'Reefer', 'Open Top', 'Flat Rack', 'Tank'].map(s => <option key={s}>{s}</option>)}
+                    </select></td>
+                    <td className="px-2 py-1.5"><input type="text" value={c.seal} onChange={e => setContainerData(d => ({ ...d, containers: d.containers.map((cc, ci) => ci === i ? { ...cc, seal: e.target.value } : cc) }))} placeholder="Seal No." className="border border-border rounded px-1 py-0.5 text-xs w-24" /></td>
+                    <td className="px-2 py-1.5"><input type="number" value={c.weight} onChange={e => setContainerData(d => ({ ...d, containers: d.containers.map((cc, ci) => ci === i ? { ...cc, weight: Number(e.target.value) } : cc) }))} className="border border-border rounded px-1 py-0.5 text-xs w-16" /></td>
+                    <td className="px-2 py-1.5"><input type="number" value={c.tare} onChange={e => setContainerData(d => ({ ...d, containers: d.containers.map((cc, ci) => ci === i ? { ...cc, tare: Number(e.target.value) } : cc) }))} className="border border-border rounded px-1 py-0.5 text-xs w-16" /></td>
+                    <td className="px-2 py-1.5"><input type="number" value={c.vgm} onChange={e => setContainerData(d => ({ ...d, containers: d.containers.map((cc, ci) => ci === i ? { ...cc, vgm: Number(e.target.value) } : cc) }))} className="border border-border rounded px-1 py-0.5 text-xs w-16" /></td>
+                    <td className="px-2 py-1.5">{c.containerType === 'Reefer' ? <input type="text" value={c.temp} onChange={e => setContainerData(d => ({ ...d, containers: d.containers.map((cc, ci) => ci === i ? { ...cc, temp: e.target.value } : cc) }))} placeholder="°C" className="border border-border rounded px-1 py-0.5 text-xs w-14" /> : <span className="text-text-muted">—</span>}</td>
+                    <td className="px-2 py-1.5"><select value={c.status} onChange={e => setContainerData(d => ({ ...d, containers: d.containers.map((cc, ci) => ci === i ? { ...cc, status: e.target.value } : cc) }))} className="border border-border rounded px-1 py-0.5 text-xs">
+                      {['Empty', 'Loaded', 'Damaged'].map(s => <option key={s}>{s}</option>)}
+                    </select></td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
-          <button onClick={() => setContainerData(d => ({ ...d, containers: [...d.containers, { no: '', size: '40ft HC', type: 'FCL', seal: '', weight: 0, tare: 0, vgm: 0 }] }))} className="mt-2 px-3 py-1 rounded border border-border text-table text-text-sec hover:bg-bg text-xs">{t('shipmentForm.addContainer')}</button>
+          <button onClick={() => setContainerData(d => ({ ...d, containers: [...d.containers, { no: '', size: '40ft HC', type: 'FCL', containerType: 'Dry', seal: '', weight: 0, tare: 0, vgm: 0, temp: '', status: 'Empty' }] }))} className="mt-2 px-3 py-1 rounded border border-border text-table text-text-sec hover:bg-bg text-xs">{t('shipmentForm.addContainer')}</button>
         </CollapsibleSection>
       )}
 

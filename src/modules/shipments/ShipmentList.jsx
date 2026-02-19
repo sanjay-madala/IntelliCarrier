@@ -21,6 +21,8 @@ export default function ShipmentList() {
   const [selectedShipment, setSelectedShipment] = useState(null);
   const [selectedFO, setSelectedFO] = useState(null);
   const [filterStatus, setFilterStatus] = useState(null);
+  const [filterBU, setFilterBU] = useState('');
+  const [filterSource, setFilterSource] = useState('');
   const [search, setSearch] = useState('');
   const [channelChoice, setChannelChoice] = useState(null);
 
@@ -48,6 +50,8 @@ export default function ShipmentList() {
   const filtered = useMemo(() => {
     let list = shipments;
     if (filterStatus) list = list.filter(s => s.status === filterStatus);
+    if (filterBU) list = list.filter(s => s.bu === filterBU);
+    if (filterSource) list = list.filter(s => s.source === filterSource);
     if (search) {
       const q = search.toLowerCase();
       list = list.filter(s =>
@@ -58,7 +62,7 @@ export default function ShipmentList() {
       );
     }
     return list;
-  }, [shipments, filterStatus, search]);
+  }, [shipments, filterStatus, filterBU, filterSource, search]);
 
   const columns = [
     { key: 'shipmentNo', label: t('shipments.table.shipmentNo') },
@@ -258,7 +262,7 @@ export default function ShipmentList() {
       </div>
 
       {/* Toolbar */}
-      <div className="flex gap-3">
+      <div className="flex gap-3 flex-wrap">
         <input
           type="text"
           placeholder={`${t('common.search')}...`}
@@ -266,6 +270,24 @@ export default function ShipmentList() {
           onChange={e => setSearch(e.target.value)}
           className="flex-1 max-w-md border border-border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
         />
+        <select value={filterBU} onChange={e => setFilterBU(e.target.value)}
+          className="border border-border rounded-lg px-3 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary">
+          <option value="">{t('shipments.table.bu')} — All</option>
+          <option value="SCC">SCC</option>
+          <option value="SCA">SCA</option>
+          <option value="SPL">SPL</option>
+          <option value="SCM">SCM</option>
+        </select>
+        <select value={filterSource} onChange={e => setFilterSource(e.target.value)}
+          className="border border-border rounded-lg px-3 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary">
+          <option value="">Source — All</option>
+          <option value="Excel Upload">Excel Upload</option>
+          <option value="PDF Upload">PDF / OCR</option>
+          <option value="TMS API">TMS API</option>
+          <option value="Email RPA">Email RPA</option>
+          <option value="Manual Entry">Manual Entry</option>
+          <option value="Forecast">Forecast</option>
+        </select>
       </div>
 
       {/* Table */}
