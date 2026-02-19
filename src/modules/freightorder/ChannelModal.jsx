@@ -14,19 +14,19 @@ const productTypeMap = {
 
 const channelsByProduct = {
   'SCC-Fuel': {
-    channels: ['excel', 'pdf', 'tms', 'email', 'line'],
+    channels: ['excel', 'pdf', 'tms', 'email', 'line', 'manual'],
     notes: '📌 <strong>Bangchak:</strong> Excel, PDF &nbsp;|&nbsp; <strong>Shell:</strong> TMS API (direct connection) &nbsp;|&nbsp; <strong>Depot:</strong> Line/Email → centralized inbox',
   },
   'SCC-NGV': {
-    channels: ['excel', 'line', 'form'],
+    channels: ['excel', 'line', 'form', 'manual'],
     notes: '📌 Line → Excel (real-time, not planned). Future: Standard Form for customers to fill.',
   },
   'SCC-LPG': {
-    channels: ['excel', 'pdf'],
+    channels: ['excel', 'pdf', 'manual'],
     notes: '📌 Primary source: Excel upload from customers.',
   },
   'SCC-Chem': {
-    channels: ['form', 'manual', 'email'],
+    channels: ['form', 'email', 'manual'],
     notes: '📌 Future: Standard Form for customers. Currently: Manual entry or Email.',
   },
   'SCA-Car': {
