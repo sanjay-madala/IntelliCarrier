@@ -18,11 +18,11 @@ export default function ReviewTab({ shipment, costs: costsProp }) {
     [completedStages]
   );
 
-  // Use actual costs from tabs if available, fallback to defaults for initial display
+  // Use actual costs from tabs (zero until user visits each tab)
   const costs = {
-    expenses: costsProp?.expenses || 1300,
-    fuel: costsProp?.fuel || 3714,
-    parking: costsProp?.parking || 100,
+    expenses: costsProp?.expenses || 0,
+    fuel: costsProp?.fuel || 0,
+    parking: costsProp?.parking || 0,
   };
   const grandTotal = costs.expenses + costs.fuel + costs.parking;
   const receiptsWithReceipt = costsProp?.receiptsWithReceipt || 0;

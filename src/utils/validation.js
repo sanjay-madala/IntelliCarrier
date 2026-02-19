@@ -29,18 +29,18 @@ export function validateMiles(stage, prevStage, lastTruckMiles, config = milesCo
     }
   }
 
-  // Rule 003: Distance variance — |actual - std| ≤ tolerance (km)
+  // Rule 003: Distance variance — |(actual - std) / std| ≤ tolerance (%)
   if (stage.stdDistance && stage.stdDistance > 0) {
     const actual = stage.milesEnd != null && stage.milesStart != null
       ? stage.milesEnd - stage.milesStart
       : null;
     if (actual != null) {
-      const variance = Math.abs(actual - stage.stdDistance);
-      if (variance > config['003']) {
+      const variancePct = Math.abs((actual - stage.stdDistance) / stage.stdDistance) * 100;
+      if (variancePct > config['003']) {
         violations.push({
           rule: '003',
-          message: `Distance variance: ${variance} km exceeds tolerance of ${config['003']} km`,
-          value: variance,
+          message: `Distance variance: ${variancePct.toFixed(1)}% exceeds tolerance of ${config['003']}%`,
+          value: variancePct,
           threshold: config['003'],
         });
       }

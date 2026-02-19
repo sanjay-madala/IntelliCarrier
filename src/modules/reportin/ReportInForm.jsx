@@ -36,7 +36,7 @@ export default function ReportInForm({ shipment, onBack }) {
     vehiclePlate: shipment.plate || '',
     trailer: shipment.trailer || '',
     vehicleType: shipment.vehicleType || '',
-    vehicleAge: shipment.vehicleAge <= 8 ? 'lte8' : 'gt8',
+    vehicleAge: shipment.vehicleAge != null && shipment.vehicleAge <= 8 ? 'lte8' : 'gt8',
     odometerStart: shipment.lastTruckMiles || 0,
     odometerEnd: '',
     lastTruckMiles: shipment.lastTruckMiles || 0,
@@ -67,8 +67,8 @@ export default function ReportInForm({ shipment, onBack }) {
         shipmentNo: shipment.shipmentNo || shipment.id,
         stage: `S${s.n ?? s.no ?? i + 1}`,
         product: shipment.product,
-        soldTo: s.soldTo || '',
-        soldToName: s.shipToName || s.to || s.dest || '',
+        soldTo: s.soldTo || shipment.customer || '',
+        soldToName: s.soldToName || shipment.customer || '',
         shipTo: s.shipToCode || '',
         shipToName: s.shipToName || s.to || s.dest || '',
         ticketQty: s.faceQty || 0,
@@ -79,6 +79,12 @@ export default function ReportInForm({ shipment, onBack }) {
         cannotUnload: s.cannotUnload || false,
         plate: shipment.plate || '',
         driver: shipment.driver || '',
+        vehicleType: shipment.vehicleType || '',
+        vehicleAge: shipment.vehicleAge || '',
+        custDoc: s.custDoc || '',
+        docDate: s.docDate || '',
+        wbs: s.wbs || shipment.wbs || '',
+        site: s.site || shipment.bu || '',
         status: 'awaiting',
       }));
       dispatch({ type: 'ADD_AWAITING_ROWS', payload: awaitingRows });
@@ -276,11 +282,11 @@ function VehicleInfoTab({ shipment, vehicleData, setVehicleData }) {
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
           <div>
             <label className="block text-label font-medium text-text-sec mb-1">{t('reportIn.vehicleInfo.driver')}</label>
-            <input value={vehicleData.driver} onChange={e => updateField('driver', e.target.value)} className={inputClass} />
+            <input value={vehicleData.driver} disabled className={inputClass} />
           </div>
           <div>
             <label className="block text-label font-medium text-text-sec mb-1">{t('reportIn.vehicleInfo.driverId')}</label>
-            <input value={vehicleData.driverId} onChange={e => updateField('driverId', e.target.value)} className={inputClass} />
+            <input value={vehicleData.driverId} disabled className={inputClass} />
           </div>
           <div>
             <label className="block text-label font-medium text-text-sec mb-1">{t('reportIn.vehicleInfo.vehiclePlate')}</label>
@@ -358,26 +364,26 @@ function VehicleInfoTab({ shipment, vehicleData, setVehicleData }) {
           <ConfigRow
             rule="001"
             desc="First stage start miles vs Last Truck Miles tolerance"
-            value="300 km"
-            detail="| milesStart - lastTruckMiles | must be <= 300 km"
+            value="50 km"
+            detail="| milesStart - lastTruckMiles | must be ≤ 50 km"
           />
           <ConfigRow
             rule="002"
             desc="Stage-to-stage gap tolerance (previous end vs current start)"
-            value="100 km"
-            detail="| prevStage.milesEnd - currStage.milesStart | must be <= 100 km"
+            value="10 km"
+            detail="| prevStage.milesEnd - currStage.milesStart | must be ≤ 10 km"
           />
           <ConfigRow
             rule="003"
             desc="Distance variance tolerance (actual vs standard distance)"
-            value="50 km"
-            detail="| actualDist - stdDist | must be <= 50 km"
+            value="15%"
+            detail="| (actualDist - stdDist) / stdDist | must be ≤ 15%"
           />
           <ConfigRow
             rule="004"
             desc="Dummy route distance tolerance (stdDistance = 0)"
             value="100 km"
-            detail="Actual distance on zero-std routes must be <= 100 km"
+            detail="Actual distance on zero-std routes must be ≤ 100 km"
           />
           <ConfigRow
             rule="005"

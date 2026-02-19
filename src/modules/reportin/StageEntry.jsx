@@ -116,6 +116,7 @@ export default function StageEntry({ shipment }) {
       : null;
     const stageObj = {
       ...stage,
+      stdDistance: data.stdDistance || stage.stdDist || stage.distance || 0,
       milesStart: Number(data.milesStart) || null,
       milesEnd: Number(data.milesEnd) || null,
     };
@@ -205,8 +206,8 @@ export default function StageEntry({ shipment }) {
 
   const inputClass = 'w-full border border-border rounded px-2.5 py-1.5 text-table text-text focus:outline-none focus:ring-1 focus:ring-primary disabled:bg-bg disabled:text-text-muted';
 
-  const isLoadStage = data.stageType === 'load' || currentStage === 0;
-  const isCustomerStage = stage.type === 'delivery' || data.stageType === 'cust';
+  const isLoadStage = data.stageType === 'load';
+  const isCustomerStage = data.stageType === 'cust' || stage.type === 'customer' || stage.type === 'delivery';
   const isLocked = stage.status === 'completed';
 
   return (

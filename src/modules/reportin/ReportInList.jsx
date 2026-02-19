@@ -93,14 +93,19 @@ export default function ReportInList() {
   }, [riShipments, activeTab, search, filterType, filterBU]);
 
   const handleOpen = (shipment) => {
-    setSelectedShipment(shipment);
+    setSelectedShipment(shipment.id);
     setView('form');
   };
 
-  if (view === 'form' && selectedShipment) {
+  // Always read live shipment from global state so stage saves reflect immediately
+  const liveShipment = view === 'form' && selectedShipment
+    ? state.shipments.find(s => s.id === selectedShipment)
+    : null;
+
+  if (view === 'form' && liveShipment) {
     return (
       <ReportInForm
-        shipment={selectedShipment}
+        shipment={liveShipment}
         onBack={() => { setView('list'); setSelectedShipment(null); }}
       />
     );
