@@ -123,7 +123,7 @@ export default function ShipmentForm({ shipment, selectedFO, channel, onBack, is
   // NGV specific state
   const nowDT = new Date().toISOString().slice(0, 16);
   const [ngvData, setNgvData] = useState({
-    receiveDate: nowDT, refDate: nowDT, dispatchDate: '', refNo: '',
+    receiveDate: nowDT, refDate: nowDT, dispatchDate: '',
     custNotifyDate: nowDT, custPSI: '', pairedVehicle: '', sentFrom: '',
     custOrder: '', fullTubeDate: '', remark: '',
     gasNotBroken: true,
@@ -157,6 +157,7 @@ export default function ShipmentForm({ shipment, selectedFO, channel, onBack, is
 
   // Container specific state
   const [containerData, setContainerData] = useState({
+    jobType: '',
     shipTo: '', soldTo: '', payer: '', billTo: '',
     shipToName: 'ท่าเรือกรุงเทพ', soldToName: 'Evergreen Line (TH)',
     payerName: '', billToName: '',
@@ -275,10 +276,17 @@ export default function ShipmentForm({ shipment, selectedFO, channel, onBack, is
 
   const addStage = () => {
     const last = stages[stages.length - 1];
-    setStages(prev => [...prev, {
-      stage: prev.length, depNo: last?.destNo || '', departure: last?.destination || '', destNo: '', destination: '',
-      type: 'Transport', plannedArr: '', plannedDep: '', distance: 0,
-    }]);
+    setStages(prev => {
+      // Re-type the current last stage (it's no longer last)
+      const updated = prev.map((s, i) => ({
+        ...s,
+        type: i === 0 ? 'First' : (s.type === 'Last' ? 'Transport' : s.type),
+      }));
+      return [...updated, {
+        stage: prev.length, depNo: last?.destNo || '', departure: last?.destination || '', destNo: '', destination: '',
+        type: 'Last', plannedArr: '', plannedDep: '', distance: 0,
+      }];
+    });
   };
 
   const removeStage = (index) => {
@@ -829,7 +837,6 @@ export default function ShipmentForm({ shipment, selectedFO, channel, onBack, is
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-3 mb-3">
             <FormField label="วัน/เวลา รับงาน" type="datetime-local" value={ngvData.receiveDate} onChange={v => setNgvData(d => ({ ...d, receiveDate: v }))} required />
             <FormField label="วัน/เวลา Ref.Date" type="datetime-local" value={ngvData.refDate} onChange={v => setNgvData(d => ({ ...d, refDate: v }))} required />
-            <FormField label="Ref No." value={ngvData.refNo} onChange={v => setNgvData(d => ({ ...d, refNo: v }))} placeholder="Reference No." />
             <FormField label="วันเวลาตู้เต็ม" type="datetime-local" value={ngvData.fullTubeDate} onChange={v => setNgvData(d => ({ ...d, fullTubeDate: v }))} />
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
@@ -1069,7 +1076,20 @@ export default function ShipmentForm({ shipment, selectedFO, channel, onBack, is
           <InfoStrip variant="info" icon="ℹ️">
             {t('shipmentForm.containerInfo')}
           </InfoStrip>
-          <h4 className="text-table font-semibold text-orange-700 mt-3 mb-2">{t('shipmentForm.partyAssignments')}</h4>
+          {/* Job Type */}
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mt-3 mb-3">
+            <FormField label="ประเภทงาน (Job Type)" type="select" value={containerData.jobType} onChange={v => setContainerData(d => ({ ...d, jobType: v }))} required
+              options={[
+                { value: 'Import', label: 'Import — นำเข้า' },
+                { value: 'Export', label: 'Export — ส่งออก' },
+                { value: 'Domestic', label: 'Domestic — ในประเทศ' },
+                { value: 'Transit', label: 'Transit — ผ่านแดน' },
+                { value: 'Empty', label: 'Empty — ตู้เปล่า' },
+              ]} placeholder="— เลือกประเภทงาน —" />
+          </div>
+
+          {/* Business Partner */}
+          <h4 className="text-table font-semibold text-orange-700 mb-2">Business Partner — คู่ค้า</h4>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-3">
             <FormField label="Agent" value={containerData.agent} onChange={v => setContainerData(d => ({ ...d, agent: v }))} placeholder="Agent code" />
             <FormField label="Agent Name" value={containerData.agentName} onChange={v => setContainerData(d => ({ ...d, agentName: v }))} placeholder="Agent name" />
@@ -1114,7 +1134,7 @@ export default function ShipmentForm({ shipment, selectedFO, channel, onBack, is
             <table className="w-full text-xs">
               <thead><tr className="bg-gray-50 border-b border-border">
                 <th className="px-2 py-2 w-8">#</th><th className="px-2 py-2">Container No.</th><th className="px-2 py-2">Size</th><th className="px-2 py-2">Type</th>
-                <th className="px-2 py-2">Container Type</th><th className="px-2 py-2">Seal No.</th><th className="px-2 py-2">Weight (kg)</th><th className="px-2 py-2">Tare (kg)</th><th className="px-2 py-2">VGM (kg)</th><th className="px-2 py-2">Temp</th><th className="px-2 py-2">Status</th>
+                <th className="px-2 py-2">Container Type</th><th className="px-2 py-2">Seal No.</th><th className="px-2 py-2">Booking</th><th className="px-2 py-2">Agent</th><th className="px-2 py-2">Weight (kg)</th><th className="px-2 py-2">Tare (kg)</th><th className="px-2 py-2">VGM (kg)</th><th className="px-2 py-2">Temp</th><th className="px-2 py-2">Status</th>
               </tr></thead>
               <tbody>
                 {containerData.containers.map((c, i) => (
@@ -1129,6 +1149,8 @@ export default function ShipmentForm({ shipment, selectedFO, channel, onBack, is
                       {['GP', 'HC', 'Dry', 'Reefer', 'Open Top', 'Flat Rack', 'Tank'].map(s => <option key={s}>{s}</option>)}
                     </select></td>
                     <td className="px-2 py-1.5"><input type="text" value={c.seal} onChange={e => setContainerData(d => ({ ...d, containers: d.containers.map((cc, ci) => ci === i ? { ...cc, seal: e.target.value } : cc) }))} placeholder="Seal No." className="border border-border rounded px-1 py-0.5 text-xs w-24" /></td>
+                    <td className="px-2 py-1.5"><input type="text" value={c.booking || containerData.booking} className="border border-border rounded px-1 py-0.5 text-xs w-24" readOnly /></td>
+                    <td className="px-2 py-1.5"><input type="text" value={c.agent || containerData.agent} className="border border-border rounded px-1 py-0.5 text-xs w-20" readOnly /></td>
                     <td className="px-2 py-1.5"><input type="number" value={c.weight} onChange={e => setContainerData(d => ({ ...d, containers: d.containers.map((cc, ci) => ci === i ? { ...cc, weight: Number(e.target.value) } : cc) }))} className="border border-border rounded px-1 py-0.5 text-xs w-16" /></td>
                     <td className="px-2 py-1.5"><input type="number" value={c.tare} onChange={e => setContainerData(d => ({ ...d, containers: d.containers.map((cc, ci) => ci === i ? { ...cc, tare: Number(e.target.value) } : cc) }))} className="border border-border rounded px-1 py-0.5 text-xs w-16" /></td>
                     <td className="px-2 py-1.5"><input type="number" value={c.vgm} onChange={e => setContainerData(d => ({ ...d, containers: d.containers.map((cc, ci) => ci === i ? { ...cc, vgm: Number(e.target.value) } : cc) }))} className="border border-border rounded px-1 py-0.5 text-xs w-16" /></td>
@@ -1236,7 +1258,18 @@ export default function ShipmentForm({ shipment, selectedFO, channel, onBack, is
           </div>
 
           {/* Vehicle Data Table */}
-          <h4 className="text-table font-semibold text-amber-700 mb-2">{t('shipmentForm.vehicleData')} — รายการรถที่ขนส่ง</h4>
+          <div className="flex items-center justify-between mb-2">
+            <h4 className="text-table font-semibold text-amber-700">{t('shipmentForm.vehicleData')} — รายการรถที่ขนส่ง</h4>
+            <label className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded border border-amber-400 text-amber-700 text-xs font-medium hover:bg-amber-50 cursor-pointer">
+              <span>{'📁'}</span> Upload Excel
+              <input type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={(e) => {
+                if (e.target.files?.[0]) {
+                  window.alert(`File "${e.target.files[0].name}" selected.\nIn production, this would parse the Excel and populate the vehicle table.`);
+                  e.target.value = '';
+                }
+              }} />
+            </label>
+          </div>
           <div className="overflow-x-auto border border-border-light rounded">
             <table className="w-full text-xs min-w-[900px]">
               <thead><tr className="bg-gray-50 border-b border-border">

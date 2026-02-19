@@ -93,6 +93,12 @@ export default function ReportInForm({ shipment, onBack }) {
     onBack();
   };
 
+  // C204: Re-edit after report-in (revert to in_progress)
+  const handleReEdit = () => {
+    dispatch({ type: 'SAVE_REPORT_IN_DRAFT', payload: shipment.id });
+    window.alert('Report-In re-opened for editing. Status reverted to In Progress.');
+  };
+
   const completedStages = shipment.stages?.filter(s => s.status === 'completed').length || 0;
   const totalStages = shipment.stages?.length || 0;
 
@@ -143,6 +149,27 @@ export default function ReportInForm({ shipment, onBack }) {
           <div className="font-semibold text-text">{completedStages} / {totalStages}</div>
         </div>
       </div>
+
+      {/* R151: Per-stage report-in buttons */}
+      {shipment.stages?.length > 0 && (
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-xs font-semibold text-text-sec uppercase tracking-wide mr-1">Stage Report-In:</span>
+          {shipment.stages.map((s, i) => {
+            const isComplete = s.status === 'completed';
+            return (
+              <button key={i}
+                onClick={() => { setActiveTab('stages'); }}
+                className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
+                  isComplete
+                    ? 'bg-green-50 text-green-700 border-green-300'
+                    : 'bg-amber-50 text-amber-700 border-amber-300 hover:bg-amber-100'
+                }`}>
+                {isComplete ? '✓ ' : ''}{`S${s.n ?? s.no ?? i + 1}: ${s.from || s.origin || ''} → ${s.to || s.dest || ''}`}
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       {/* 6 Inner Tabs */}
       <div className="flex border-b border-border overflow-x-auto">
@@ -196,6 +223,15 @@ export default function ReportInForm({ shipment, onBack }) {
           >
             {t('common.submitForReview')}
           </button>
+          {/* C204: Re-edit button for rejected/submitted status */}
+          {(shipment.riStatus === 'rejected' || shipment.riStatus === 'pending_review') && (
+            <button
+              onClick={handleReEdit}
+              className="px-4 py-1.5 rounded border border-orange-400 text-orange-700 text-table hover:bg-orange-50 transition-colors"
+            >
+              Re-Edit
+            </button>
+          )}
           {/* Shown for reviewers when status is pending_review */}
           {shipment.riStatus === 'pending_review' && (
             <>

@@ -184,6 +184,24 @@ export default function ReviewTab({ shipment, costs: costsProp }) {
         </div>
       </div>
 
+      {/* C205: Pre-close validation — check routes have standard distance */}
+      {(() => {
+        const missingDist = shipment.stages.filter(s => !(s.stdDistance || s.stdDist || s.distance));
+        const incompleteStages = shipment.stages.filter(s => s.status !== 'completed');
+        const warnings = [];
+        if (missingDist.length > 0) warnings.push(`${missingDist.length} stage(s) missing standard distance. Please verify route master.`);
+        if (incompleteStages.length > 0) warnings.push(`${incompleteStages.length} stage(s) not yet completed.`);
+        if (warnings.length === 0) return null;
+        return (
+          <div className="rounded-lg px-4 py-3 border-2 border-amber-300 bg-amber-50">
+            <div className="text-sm font-semibold text-amber-800 mb-1">{'⚠️'} Pre-Close Validation Warnings</div>
+            {warnings.map((w, i) => (
+              <div key={i} className="text-xs text-amber-700 ml-5">{'•'} {w}</div>
+            ))}
+          </div>
+        );
+      })()}
+
       {/* Summary Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <SummaryCard

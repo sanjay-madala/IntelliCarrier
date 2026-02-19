@@ -76,7 +76,17 @@ export default function StageEntry({ shipment }) {
     return null;
   }, [data.milesStart, data.milesEnd]);
 
+  const [stageTypeWarning, setStageTypeWarning] = useState(null);
+
   const updateField = (field, value) => {
+    // R105: Warn when changing stage type — route may need re-validation
+    if (field === 'stageType') {
+      const oldType = stageData[currentStage].stageType;
+      if (oldType !== value) {
+        setStageTypeWarning(`Stage type changed from "${oldType}" to "${value}". Please verify the route and distance are still correct.`);
+        setTimeout(() => setStageTypeWarning(null), 6000);
+      }
+    }
     setStageData(prev => {
       const next = [...prev];
       next[currentStage] = { ...next[currentStage], [field]: value };
@@ -122,6 +132,8 @@ export default function StageEntry({ shipment }) {
     const result = runValidation();
     if (!result.passed) return;
 
+    const milesEnd = Number(data.milesEnd) || null;
+
     dispatch({
       type: 'UPDATE_STAGE',
       payload: {
@@ -129,7 +141,7 @@ export default function StageEntry({ shipment }) {
         stageIndex: currentStage,
         data: {
           milesStart: Number(data.milesStart) || null,
-          milesEnd: Number(data.milesEnd) || null,
+          milesEnd,
           status: 'completed',
           departureTime: data.departureTime || null,
           arrivalTime: data.arrivalTime || null,
@@ -153,6 +165,14 @@ export default function StageEntry({ shipment }) {
         },
       },
     });
+
+    // O169: Keep latest truck miles in truck master
+    if (milesEnd && shipment.plate) {
+      dispatch({
+        type: 'UPDATE_TRUCK_MILES',
+        payload: { plate: shipment.plate, lastTruckMiles: milesEnd },
+      });
+    }
   };
 
   const handleSimulateMobile = () => {
@@ -261,6 +281,15 @@ export default function StageEntry({ shipment }) {
           {t('stage.nav.next')} {'→'}
         </button>
       </div>
+
+      {/* R105: Stage type change warning */}
+      {stageTypeWarning && (
+        <div className="rounded-lg px-4 py-2.5 flex items-center gap-2 border border-amber-300 bg-amber-50">
+          <span className="text-lg">{'⚠️'}</span>
+          <span className="text-xs text-amber-800">{stageTypeWarning}</span>
+          <button onClick={() => setStageTypeWarning(null)} className="ml-auto text-amber-600 hover:text-amber-800 text-xs font-bold">&times;</button>
+        </div>
+      )}
 
       {/* Data Source Selector */}
       <div className="flex items-center gap-3">

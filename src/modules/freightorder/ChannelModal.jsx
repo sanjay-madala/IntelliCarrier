@@ -43,7 +43,7 @@ const channelDefinitions = {
   excel:    { icon: '📊', title: 'Excel Upload',     desc: 'Batch calling sheet / BFPL format', action: 'upload' },
   pdf:      { icon: '📄', title: 'PDF / OCR Upload', desc: 'Upload PDF, scan & extract',        action: 'upload' },
   tms:      { icon: '🔗', title: 'TMS API',          desc: 'Connect external system (Shell)',   action: 'tms' },
-  email:    { icon: '📧', title: 'Email RPA',        desc: 'Fetch from centralized inbox',      action: 'upload' },
+  email:    { icon: '📧', title: 'Email RPA',        desc: 'Auto-read from inbox when new email arrives. Creates draft FOs automatically.',      action: 'upload', autoPoll: true },
   line:     { icon: '💬', title: 'LINE Message',     desc: 'Import from LINE chat',             action: 'upload' },
   form:     { icon: '📝', title: 'Standard Form',    desc: 'Customer fills online form',        action: 'form' },
   manual:   { icon: '✏️', title: 'Manual Entry',     desc: 'Phone / walk-in orders',            action: 'manual' },
@@ -114,7 +114,12 @@ export default function ChannelModal({ onClose, onSelect }) {
                   return (
                     <div key={ch}
                       onClick={() => onSelect(def.action, company, productType)}
-                      className="border-2 border-[#d9d9d9] rounded-[10px] p-4 cursor-pointer transition-all text-center hover:border-[#0854a0] hover:bg-[#ebf5ff]">
+                      className="border-2 border-[#d9d9d9] rounded-[10px] p-4 cursor-pointer transition-all text-center hover:border-[#0854a0] hover:bg-[#ebf5ff] relative">
+                      {def.autoPoll && (
+                        <span className="absolute top-2 right-2 flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-green-100 text-green-700 border border-green-300">
+                          <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" /> AUTO
+                        </span>
+                      )}
                       <div className="text-3xl mb-1">{def.icon}</div>
                       <div className="font-semibold text-sm">{def.title}</div>
                       <div className="text-[11px] text-[#89919a] mt-0.5">{def.desc}</div>

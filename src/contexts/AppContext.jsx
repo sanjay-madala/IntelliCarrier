@@ -102,6 +102,15 @@ function appReducer(state, action) {
         ),
       };
 
+    // --- Truck Miles ---
+    case 'UPDATE_TRUCK_MILES': {
+      const { plate, lastTruckMiles } = action.payload;
+      return {
+        ...state,
+        trucks: state.trucks.map(t => t.plate === plate ? { ...t, lastTruckMiles, lastDate: new Date().toISOString().split('T')[0] } : t),
+      };
+    }
+
     // --- Settlement ---
     case 'ADD_AWAITING_ROWS': {
       const newRows = [...state.awaitingRows, ...action.payload];
