@@ -36,6 +36,7 @@ const EXTRA_0636_ROLES = [
 // Stage type badge colors
 const stageTypeBadge = {
   'First': 'bg-blue-100 text-blue-700',
+  'Hub': 'bg-purple-100 text-purple-700',
   'Transport': 'bg-orange-100 text-orange-700',
   'Loading Transfer': 'bg-green-100 text-green-700',
   'Customer': 'bg-green-100 text-green-700',
@@ -125,6 +126,7 @@ export default function ShipmentForm({ shipment, selectedFO, channel, onBack, is
     receiveDate: nowDT, refDate: nowDT, dispatchDate: '', refNo: '',
     custNotifyDate: nowDT, custPSI: '', pairedVehicle: '', sentFrom: '',
     custOrder: '', fullTubeDate: '', remark: '',
+    gasNotBroken: true,
     heavyTube: { no: 'NGV-T001', weight: 4250, psi: 3200, kg: 4250, temp: 32 },
     lightTube: { no: 'NGV-P001', weight: 4100, psi: 3100, kg: 4100, temp: 33 },
     qualityReadings: [1, 2, 3, 4].map((_, i) => ({
@@ -135,6 +137,8 @@ export default function ShipmentForm({ shipment, selectedFO, channel, onBack, is
   // Fuel specific state
   const [fuelData, setFuelData] = useState({
     shipCust: '', custName: 'Shell (สระบุรี)', custCode: 'SH-SRB-001',
+    loadReceiveSlip: '', loadStartTime: '', loadEndTime: '', loadTicketTime: '',
+    unloadStartTime: '', unloadEndTime: '',
     deliveries: [
       { shipTo: '269307', name: 'บจก. ชุลออยล์ เซอร์วิส', code: 'SH-001', deliveryNo: '8023742938', comps: [
         { comp: '001', qty: 9000, status: 'Y ส่งได้' }, { comp: '002', qty: 6000, status: 'Y ส่งได้' },
@@ -156,6 +160,7 @@ export default function ShipmentForm({ shipment, selectedFO, channel, onBack, is
     shipTo: '', soldTo: '', payer: '', billTo: '',
     shipToName: 'ท่าเรือกรุงเทพ', soldToName: 'Evergreen Line (TH)',
     payerName: '', billToName: '',
+    agent: '', agentName: '',
     booking: 'BKG-EV-2026-0142', blNo: '', shippingLine: '', vessel: '', containerCount: 2,
     portOfLoading: '', portOfDischarge: '', placeOfDelivery: '',
     remark1: '', remark2: '',
@@ -756,7 +761,7 @@ export default function ShipmentForm({ shipment, selectedFO, channel, onBack, is
                 <tr key={i} className="border-b border-border-light">
                   <td className="text-center px-2 py-2">
                     <span className={`inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-semibold text-white ${
-                      s.type === 'First' ? 'bg-blue-600' : s.type === 'Transport' ? 'bg-orange-500' : s.type === 'Loading Transfer' || s.type === 'Customer' ? 'bg-green-600' : 'bg-gray-500'
+                      s.type === 'First' ? 'bg-blue-600' : s.type === 'Hub' ? 'bg-purple-600' : s.type === 'Transport' ? 'bg-orange-500' : s.type === 'Loading Transfer' || s.type === 'Customer' ? 'bg-green-600' : 'bg-gray-500'
                     }`}>{s.stage}</span>
                   </td>
                   <td className="px-2 py-2">
@@ -775,7 +780,7 @@ export default function ShipmentForm({ shipment, selectedFO, channel, onBack, is
                   <td className="px-2 py-2 text-table text-xs">{s.destination || '—'}</td>
                   <td className="text-center px-2 py-2">
                     <select value={s.type} onChange={e => updateStageField(i, 'type', e.target.value)} className="border border-border rounded px-1 py-0.5 text-xs">
-                      {['First', 'Transport', 'Loading Transfer', 'Customer', 'Last'].map(st => <option key={st} value={st}>{st}</option>)}
+                      {['First', 'Hub', 'Transport', 'Loading Transfer', 'Customer', 'Last'].map(st => <option key={st} value={st}>{st}</option>)}
                     </select>
                   </td>
                   <td className="px-2 py-2">
@@ -902,6 +907,42 @@ export default function ShipmentForm({ shipment, selectedFO, channel, onBack, is
               </table>
             </div>
           </div>
+
+          {/* NGV Gas Detail — before/after readings */}
+          <div className="mt-3">
+            <h4 className="text-table font-semibold text-green-700 mb-2 flex items-center gap-2">
+              Gas Detail — ก่อนลง / หลังลง
+              <label className="ml-4 flex items-center gap-1.5 text-xs font-normal">
+                <input type="checkbox" checked={ngvData.gasNotBroken} onChange={e => setNgvData(d => ({ ...d, gasNotBroken: e.target.checked }))} className="w-4 h-4 accent-green-600" />
+                <span className="text-green-700">ไม่เสีย (Not broken)</span>
+              </label>
+            </h4>
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs border border-border-light rounded">
+                <thead><tr className="bg-purple-50 border-b border-border">
+                  <th className="px-2 py-2 w-8">#</th>
+                  <th className="px-2 py-2 bg-green-50" colSpan={2}>ก่อนลง (Before)</th>
+                  <th className="px-2 py-2 bg-orange-50" colSpan={2}>หลังลง (After)</th>
+                </tr>
+                <tr className="bg-gray-50 border-b border-border text-[10px]">
+                  <th></th>
+                  <th className="px-2 py-1 bg-green-50">แรงดัน/น้ำหนัก/อุณหภูมิ</th><th className="px-2 py-1 bg-green-50">PSI / KG</th>
+                  <th className="px-2 py-1 bg-orange-50">แรงดัน/น้ำหนัก/อุณหภูมิ</th><th className="px-2 py-1 bg-orange-50">PSI / KG</th>
+                </tr></thead>
+                <tbody>
+                  {[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18].map(n => (
+                    <tr key={n} className="border-b border-border-light">
+                      <td className="text-center px-2 py-1 font-semibold">{n}</td>
+                      <td className="px-2 py-1"><input type="number" defaultValue={0} className="border border-border rounded px-1 py-0.5 text-xs w-20" /></td>
+                      <td className="px-2 py-1"><input type="number" defaultValue={0} className="border border-border rounded px-1 py-0.5 text-xs w-16" /></td>
+                      <td className="px-2 py-1"><input type="number" defaultValue={0} className="border border-border rounded px-1 py-0.5 text-xs w-20" /></td>
+                      <td className="px-2 py-1"><input type="number" defaultValue={0} className="border border-border rounded px-1 py-0.5 text-xs w-16" /></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
         </CollapsibleSection>
       )}
 
@@ -922,6 +963,22 @@ export default function ShipmentForm({ shipment, selectedFO, channel, onBack, is
             </div>
             <FormField label={t('shipmentForm.custName')} value={fuelData.custName} disabled />
             <FormField label={t('shipmentForm.custCode')} value={fuelData.custCode} disabled />
+          </div>
+
+          {/* Fuel Load Stage Timestamps */}
+          <h4 className="text-table font-semibold text-orange-700 mt-3 mb-2">เวลาเติมน้ำมัน (Loading Timestamps)</h4>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
+            <FormField label="วันเวลารับใบเติม" type="datetime-local" value={fuelData.loadReceiveSlip} onChange={v => setFuelData(d => ({ ...d, loadReceiveSlip: v }))} />
+            <FormField label="วันเวลาเริ่มเติม" type="datetime-local" value={fuelData.loadStartTime} onChange={v => setFuelData(d => ({ ...d, loadStartTime: v }))} />
+            <FormField label="วันเวลาเติมเสร็จ" type="datetime-local" value={fuelData.loadEndTime} onChange={v => setFuelData(d => ({ ...d, loadEndTime: v }))} />
+            <FormField label="เวลารับตั๋ว" type="datetime-local" value={fuelData.loadTicketTime} onChange={v => setFuelData(d => ({ ...d, loadTicketTime: v }))} />
+          </div>
+
+          {/* Fuel Unload Stage Timestamps */}
+          <h4 className="text-table font-semibold text-blue-700 mb-2">เวลาลงน้ำมัน (Unloading Timestamps)</h4>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
+            <FormField label="วันเวลาเริ่มลง" type="datetime-local" value={fuelData.unloadStartTime} onChange={v => setFuelData(d => ({ ...d, unloadStartTime: v }))} />
+            <FormField label="วันเวลาลงเสร็จ" type="datetime-local" value={fuelData.unloadEndTime} onChange={v => setFuelData(d => ({ ...d, unloadEndTime: v }))} />
           </div>
 
           {/* Customer Delivery Table */}
@@ -1013,6 +1070,10 @@ export default function ShipmentForm({ shipment, selectedFO, channel, onBack, is
             {t('shipmentForm.containerInfo')}
           </InfoStrip>
           <h4 className="text-table font-semibold text-orange-700 mt-3 mb-2">{t('shipmentForm.partyAssignments')}</h4>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-3">
+            <FormField label="Agent" value={containerData.agent} onChange={v => setContainerData(d => ({ ...d, agent: v }))} placeholder="Agent code" />
+            <FormField label="Agent Name" value={containerData.agentName} onChange={v => setContainerData(d => ({ ...d, agentName: v }))} placeholder="Agent name" />
+          </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-2">
             {['Ship To', 'Sold To', 'Payer', 'Bill To'].map((lbl, i) => (
               <div key={i}>
@@ -1065,7 +1126,7 @@ export default function ShipmentForm({ shipment, selectedFO, channel, onBack, is
                     </select></td>
                     <td className="px-2 py-1.5"><select value={c.type} onChange={e => setContainerData(d => ({ ...d, containers: d.containers.map((cc, ci) => ci === i ? { ...cc, type: e.target.value } : cc) }))} className="border border-border rounded px-1 py-0.5 text-xs"><option>FCL</option><option>LCL</option><option>Empty</option></select></td>
                     <td className="px-2 py-1.5"><select value={c.containerType} onChange={e => setContainerData(d => ({ ...d, containers: d.containers.map((cc, ci) => ci === i ? { ...cc, containerType: e.target.value } : cc) }))} className="border border-border rounded px-1 py-0.5 text-xs">
-                      {['Dry', 'Reefer', 'Open Top', 'Flat Rack', 'Tank'].map(s => <option key={s}>{s}</option>)}
+                      {['GP', 'HC', 'Dry', 'Reefer', 'Open Top', 'Flat Rack', 'Tank'].map(s => <option key={s}>{s}</option>)}
                     </select></td>
                     <td className="px-2 py-1.5"><input type="text" value={c.seal} onChange={e => setContainerData(d => ({ ...d, containers: d.containers.map((cc, ci) => ci === i ? { ...cc, seal: e.target.value } : cc) }))} placeholder="Seal No." className="border border-border rounded px-1 py-0.5 text-xs w-24" /></td>
                     <td className="px-2 py-1.5"><input type="number" value={c.weight} onChange={e => setContainerData(d => ({ ...d, containers: d.containers.map((cc, ci) => ci === i ? { ...cc, weight: Number(e.target.value) } : cc) }))} className="border border-border rounded px-1 py-0.5 text-xs w-16" /></td>
@@ -1201,9 +1262,13 @@ export default function ShipmentForm({ shipment, selectedFO, channel, onBack, is
                     <td className="px-1.5 py-1.5 text-[11px]">{v.shipTo}</td>
                     <td className="px-1.5 py-1.5 text-[11px]">{v.shipToName}</td>
                     <td className="px-1.5 py-1.5">
-                      <select className="border border-border rounded px-1 py-0.5 text-xs w-full">
-                        <option>{t('shipmentForm.notReturnTruck')}</option>
-                        <option>{t('shipmentForm.returnTruck')}</option>
+                      <select className="border border-border rounded px-1 py-0.5 text-xs w-full"
+                        value={v.returnStatus || 'ไม่ใช่รถกลับ'}
+                        onChange={e => setScaData(d => ({ ...d, vehicles: d.vehicles.map((ve, vi) => vi === i ? { ...ve, returnStatus: e.target.value } : ve) }))}>
+                        <option value="ไม่ใช่รถกลับ">ไม่ใช่รถกลับ</option>
+                        <option value="ใช่">ใช่</option>
+                        <option value="แลกเปลี่ยน">แลกเปลี่ยน</option>
+                        <option value="มือสอง">มือสอง</option>
                       </select>
                     </td>
                   </tr>

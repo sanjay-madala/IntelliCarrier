@@ -54,9 +54,9 @@ export const productTypeMap = {
 
 // Miles checking config
 export const milesConfig = {
-  '001': 50,
-  '002': 10,
-  '003': 0.15,
+  '001': 300,
+  '002': 100,
+  '003': 50,
   '004': 100,
   '005': true,
 };

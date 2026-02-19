@@ -322,20 +322,20 @@ function VehicleInfoTab({ shipment, vehicleData, setVehicleData }) {
           <ConfigRow
             rule="001"
             desc="First stage start miles vs Last Truck Miles tolerance"
-            value="50 km"
-            detail="| milesStart - lastTruckMiles | must be <= 50 km"
+            value="300 km"
+            detail="| milesStart - lastTruckMiles | must be <= 300 km"
           />
           <ConfigRow
             rule="002"
             desc="Stage-to-stage gap tolerance (previous end vs current start)"
-            value="10 km"
-            detail="| prevStage.milesEnd - currStage.milesStart | must be <= 10 km"
+            value="100 km"
+            detail="| prevStage.milesEnd - currStage.milesStart | must be <= 100 km"
           />
           <ConfigRow
             rule="003"
-            desc="Distance variance % (actual vs standard distance)"
-            value="15%"
-            detail="| actualDist - stdDist | / stdDist must be <= 15%"
+            desc="Distance variance tolerance (actual vs standard distance)"
+            value="50 km"
+            detail="| actualDist - stdDist | must be <= 50 km"
           />
           <ConfigRow
             rule="004"
