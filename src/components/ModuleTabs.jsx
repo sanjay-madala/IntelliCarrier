@@ -24,14 +24,14 @@ export default function ModuleTabs() {
 
   return (
     <div className="bg-surface border-b border-border">
-      <div className="flex items-center gap-0 px-4">
+      <div className="flex items-center gap-1 px-6">
         {tabs.map(tab => {
           const isActive = state.activeModule === tab.key;
           return (
             <button
               key={tab.key}
               onClick={() => dispatch({ type: 'SET_MODULE', payload: tab.key })}
-              className={`flex items-center gap-1.5 px-4 py-2.5 text-sm transition-colors border-b-2 whitespace-nowrap
+              className={`flex items-center gap-2 px-5 py-3 text-sm transition-colors border-b-2 whitespace-nowrap
                 ${isActive
                   ? 'border-primary font-semibold text-primary'
                   : 'border-transparent text-text-sec hover:text-text hover:border-border'

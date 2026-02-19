@@ -49,7 +49,7 @@ export default function DataTable({ columns, data, onRowClick, emptyMessage = 'N
                     }
                   },
                 })}
-                className={`text-left px-3 py-2 font-medium text-text-sec whitespace-nowrap
+                className={`text-left px-4 py-3 font-medium text-text-sec whitespace-nowrap
                   ${col.sortable !== false ? 'cursor-pointer hover:text-text select-none' : ''}`}
               >
                 {col.label}
@@ -78,7 +78,7 @@ export default function DataTable({ columns, data, onRowClick, emptyMessage = 'N
                 ${onRowClick ? 'cursor-pointer' : ''}`}
             >
               {columns.map(col => (
-                <td key={col.key} className="px-3 py-2 whitespace-nowrap">
+                <td key={col.key} className="px-4 py-3 whitespace-nowrap">
                   {col.render ? col.render(row[col.key], row) : (row[col.key] ?? '—')}
                 </td>
               ))}

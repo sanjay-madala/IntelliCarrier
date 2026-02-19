@@ -76,27 +76,27 @@ export default function ShipmentList() {
     {
       key: 'actions', label: t('shipments.table.actions'), sortable: false,
       render: (_, row) => (
-        <div className="flex gap-1">
+        <div className="flex gap-1.5">
           {row.status === 'OPEN' && (
             <>
               <button onClick={(e) => { e.stopPropagation(); handleEdit(row); }}
-                className="text-xs px-2 py-0.5 rounded bg-primary/10 text-primary hover:bg-primary/20">
+                className="text-xs px-2.5 py-1 rounded-md bg-primary/10 text-primary hover:bg-primary/20 transition-colors">
                 {t('shipments.actions.edit')}
               </button>
               <button onClick={(e) => { e.stopPropagation(); dispatch({ type: 'DISPATCH_SHIPMENT', payload: row.id }); }}
-                className="text-xs px-2 py-0.5 rounded bg-success/10 text-success hover:bg-success/20">
+                className="text-xs px-2.5 py-1 rounded-md bg-success/10 text-success hover:bg-success/20 transition-colors">
                 {t('shipments.actions.dispatch')}
               </button>
             </>
           )}
           {row.status === 'DISPATCHED' && (
             <button onClick={(e) => { e.stopPropagation(); dispatch({ type: 'SET_MODULE', payload: 'reportin' }); }}
-              className="text-xs px-2 py-0.5 rounded bg-warning/10 text-warning hover:bg-warning/20">
+              className="text-xs px-2.5 py-1 rounded-md bg-warning/10 text-warning hover:bg-warning/20 transition-colors">
               {t('shipments.actions.reportIn')}
             </button>
           )}
           <button onClick={(e) => { e.stopPropagation(); handleView(row); }}
-            className="text-xs px-2 py-0.5 rounded bg-gray-100 text-text-sec hover:bg-gray-200">
+            className="text-xs px-2.5 py-1 rounded-md bg-gray-100 text-text-sec hover:bg-gray-200 transition-colors">
             {t('shipments.actions.view')}
           </button>
         </div>
@@ -218,14 +218,14 @@ export default function ShipmentList() {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-lg font-bold text-text">{t('shipments.pageTitle')}</h1>
-          <p className="text-table text-text-sec">{t('shipments.pageSubtitle')}</p>
+          <h1 className="text-xl font-bold text-text">{t('shipments.pageTitle')}</h1>
+          <p className="text-sm text-text-sec mt-1">{t('shipments.pageSubtitle')}</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-3">
           <button
             onClick={() => {
               const csv = ['ShipmentNo,Status,Product,BU,Route,Customer,Truck,Driver,Qty,Created'].concat(
@@ -235,13 +235,13 @@ export default function ShipmentList() {
               const url = URL.createObjectURL(blob);
               const a = document.createElement('a'); a.href = url; a.download = `shipments_${new Date().toISOString().slice(0,10)}.csv`; a.click(); URL.revokeObjectURL(url);
             }}
-            className="px-3 py-1.5 rounded border border-border text-table text-text-sec hover:bg-bg"
+            className="px-4 py-2 rounded-lg border border-border text-sm text-text-sec hover:bg-bg transition-colors"
           >
             {t('shipments.export')}
           </button>
           <button
             onClick={() => setShowChannelModal(true)}
-            className="px-3 py-1.5 rounded bg-primary text-white text-table font-medium hover:bg-primary-hover transition-colors"
+            className="px-5 py-2 rounded-lg bg-primary text-white text-sm font-medium hover:bg-primary-hover transition-colors"
           >
             {t('shipments.newShipment')}
           </button>
@@ -249,7 +249,7 @@ export default function ShipmentList() {
       </div>
 
       {/* KPI Strip */}
-      <div className="flex gap-3 overflow-x-auto pb-1">
+      <div className="flex gap-4 overflow-x-auto pb-1">
         <KPITile label={t('shipments.kpi.total')} count={kpis.total} active={!filterStatus} onClick={() => setFilterStatus(null)} />
         <KPITile icon="🟡" label={t('shipments.kpi.open')} count={kpis.open} color="text-yellow-600" active={filterStatus === 'OPEN'} onClick={() => setFilterStatus('OPEN')} />
         <KPITile icon="🚀" label={t('shipments.kpi.dispatched')} count={kpis.dispatched} color="text-blue-600" active={filterStatus === 'DISPATCHED'} onClick={() => setFilterStatus('DISPATCHED')} />
@@ -258,18 +258,18 @@ export default function ShipmentList() {
       </div>
 
       {/* Toolbar */}
-      <div className="flex gap-2">
+      <div className="flex gap-3">
         <input
           type="text"
           placeholder={`${t('common.search')}...`}
           value={search}
           onChange={e => setSearch(e.target.value)}
-          className="flex-1 max-w-sm border border-border rounded px-3 py-1.5 text-table focus:outline-none focus:ring-1 focus:ring-primary"
+          className="flex-1 max-w-md border border-border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
         />
       </div>
 
       {/* Table */}
-      <div className="bg-white rounded-lg border border-border-light shadow-sm">
+      <div className="bg-white rounded-xl border border-border-light shadow-sm overflow-hidden">
         <DataTable
           columns={columns}
           data={filtered}

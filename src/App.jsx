@@ -30,7 +30,7 @@ export default function App() {
           <Shell />
           <ModuleTabs />
 
-          <main className="pb-8">
+          <main className="px-6 pt-6 pb-14">
             <ModuleRouter />
           </main>
 

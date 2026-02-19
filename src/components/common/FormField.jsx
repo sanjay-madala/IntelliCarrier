@@ -1,10 +1,10 @@
 export default function FormField({ label, type = 'text', value, onChange, options, placeholder, disabled, required, className = '' }) {
-  const base = 'w-full border border-border rounded px-2.5 py-1.5 text-table text-text focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary disabled:bg-bg disabled:text-text-muted';
+  const base = 'w-full border border-border rounded-md px-3 py-2 text-table text-text focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary disabled:bg-bg disabled:text-text-muted';
 
   return (
     <div className={className}>
       {label && (
-        <label className="block text-label font-medium text-text-sec mb-1">
+        <label className="block text-label font-medium text-text-sec mb-1.5">
           {label}
           {required && <span className="text-error ml-0.5">*</span>}
         </label>

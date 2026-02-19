@@ -24,18 +24,18 @@ export default function Shell() {
   const subtitle = moduleNames[state.activeModule] || t('app.subtitle');
 
   return (
-    <header className="sticky top-0 z-50 h-12 shell-gradient text-white">
-      <div className="h-full flex items-center justify-between px-4">
+    <header className="sticky top-0 z-50 h-14 shell-gradient text-white">
+      <div className="h-full flex items-center justify-between px-6">
         {/* Left: Logo + subtitle */}
-        <div className="flex items-center gap-2">
-          <span className="text-lg">{'📦'}</span>
-          <span className="font-bold text-sm tracking-wide">{t('app.title')}</span>
+        <div className="flex items-center gap-3">
+          <span className="text-xl">{'📦'}</span>
+          <span className="font-bold text-base tracking-wide">{t('app.title')}</span>
           <span className="opacity-40 mx-1">|</span>
           <span className="text-sm opacity-80">{subtitle}</span>
         </div>
 
         {/* Right: Language toggle + icons */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-4">
           {/* Language Toggle Pill */}
           <div className="bg-white/20 rounded-full p-0.5 flex items-center">
             <button

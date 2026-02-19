@@ -2,7 +2,7 @@ export default function KPITile({ icon, label, count, active, onClick, color = '
   return (
     <button
       onClick={onClick}
-      className={`flex flex-col items-center gap-1 px-4 py-3 rounded-lg border transition-all min-w-[100px]
+      className={`flex flex-col items-center gap-1.5 px-5 py-4 rounded-lg border transition-all min-w-[110px]
         ${active ? 'border-primary bg-highlight shadow-sm' : 'border-border-light bg-white hover:border-border hover:shadow-sm'}`}
     >
       {icon && <span className="text-lg">{icon}</span>}

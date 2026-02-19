@@ -11,7 +11,7 @@
   .bridge-green { background: linear-gradient(135deg, #107e3e 0%, #1a9898 100%); }
   .bridge-blue  { background: linear-gradient(135deg, #0854a0 0%, #0a6ed1 100%); }
   .bridge-purple { background: linear-gradient(135deg, #7b1fa2 0%, #0854a0 100%); }
-  .badge-pill { @apply inline-flex items-center px-2 py-0.5 rounded-[10px] text-xs font-medium; }
+  .badge-pill { @apply inline-flex items-center px-2.5 py-1 rounded-[10px] text-xs font-medium; }
 
   /* Product badge colors */
   .badge-lpg { @apply bg-red-100 text-red-700; }
@@ -31,10 +31,10 @@
 
 /* Form controls used by FreightOrderModule */
 .fc {
-  padding: 0.4rem 0.6rem;
+  padding: 0.5rem 0.75rem;
   border: 1px solid #d9d9d9;
-  border-radius: 4px;
-  font-size: 0.82rem;
+  border-radius: 6px;
+  font-size: 0.85rem;
   font-family: 'IBM Plex Sans', 'IBM Plex Sans Thai', -apple-system, sans-serif;
   color: #32363a;
   width: 100%;

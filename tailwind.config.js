@@ -27,8 +27,8 @@ export default {
       },
       fontSize: {
         base: '14px',
-        label: '0.76rem',
-        table: '0.82rem',
+        label: '0.8rem',
+        table: '0.85rem',
       },
     },
   },
