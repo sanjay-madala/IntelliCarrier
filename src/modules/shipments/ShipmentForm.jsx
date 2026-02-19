@@ -516,17 +516,19 @@ export default function ShipmentForm({ shipment, selectedFO, channel, onBack, is
               </tr>
             </thead>
             <tbody>
-              {drivers.map((d, i) => (
+              {drivers.map((d, i) => {
+                const role = DRIVER_ROLES[i] || { label: d.key, required: false };
+                return (
                 <tr key={d.key} className="border-b border-border-light">
                   <td className="text-center px-2 py-2 font-medium">{i + 1}</td>
                   <td className="px-2 py-2">
-                    <span className={DRIVER_ROLES[i].required ? 'font-bold text-error' : ''}>
-                      {DRIVER_ROLES[i].label}
+                    <span className={role.required ? 'font-bold text-error' : ''}>
+                      {role.label}
                     </span>
                   </td>
                   <td className="px-2 py-2">
                     <div className="flex">
-                      <input type="text" value={d.id} readOnly placeholder={DRIVER_ROLES[i].required ? 'Search ID/Name...' : 'Optional...'}
+                      <input type="text" value={d.id} readOnly placeholder={role.required ? 'Search ID/Name...' : 'Optional...'}
                         disabled={isEditMode}
                         className="flex-1 border border-border rounded-l px-2 py-1 text-table bg-white disabled:bg-bg disabled:text-text-muted" />
                       <button onClick={() => setEmpSearchTarget(d.key)} disabled={isEditMode}
@@ -559,7 +561,8 @@ export default function ShipmentForm({ shipment, selectedFO, channel, onBack, is
                     ) : '—'}
                   </td>
                 </tr>
-              ))}
+                );
+              })}
             </tbody>
           </table>
         </div>
@@ -610,7 +613,7 @@ export default function ShipmentForm({ shipment, selectedFO, channel, onBack, is
                   <td className="px-2 py-2 text-table text-xs">{s.destination || '—'}</td>
                   <td className="text-center px-2 py-2">
                     <select value={s.type} onChange={e => updateStageField(i, 'type', e.target.value)} className="border border-border rounded px-1 py-0.5 text-xs">
-                      {['First', 'Transport', 'Loading Transfer', 'Customer', 'Last'].map(t => <option key={t} value={t}>{t}</option>)}
+                      {['First', 'Transport', 'Loading Transfer', 'Customer', 'Last'].map(st => <option key={st} value={st}>{st}</option>)}
                     </select>
                   </td>
                   <td className="px-2 py-2">
