@@ -172,9 +172,25 @@ export default function ShipmentList() {
   const handleConfirmDrafts = (drafts) => {
     setShowUploadModal(false);
     if (drafts.length === 0) return;
-    // Create shipment from the first draft, pass all data
-    const fo = drafts[0];
-    foToShipment(fo, 'Excel Upload');
+    if (drafts.length === 1) {
+      // Single draft: open ShipmentForm for detailed editing
+      foToShipment(drafts[0], 'Excel Upload');
+    } else {
+      // Bulk: create all drafts as OPEN shipments directly
+      drafts.forEach(fo => {
+        const id = generateId('SHP');
+        const qty = fo.products?.[0]?.quantity || (typeof fo.quantity === 'string' ? parseInt(fo.quantity.replace(/[^0-9]/g, '')) : fo.quantity) || 0;
+        dispatch({ type: 'ADD_SHIPMENT', payload: {
+          id, shipmentNo: id, status: 'OPEN', source: 'Excel Upload',
+          bu: fo.bu || channelBU, product: fo.productType || channelProduct,
+          routeName: fo.route || '', customer: fo.customerName || fo.customer || '',
+          driver: '', plate: '', totalQty: qty,
+          created: new Date().toISOString().split('T')[0],
+          stages: [], consolidatedFOs: [],
+        }});
+      });
+      window.alert(`${drafts.length} shipments created in OPEN status. Edit each from the list.`);
+    }
   };
 
   // Handle single draft edit/confirm from EditDraftModal
@@ -194,7 +210,22 @@ export default function ShipmentList() {
   const handleTMSImport = (orders) => {
     setShowTMSModal(false);
     if (orders.length === 0) return;
-    foToShipment(orders[0], 'TMS API');
+    if (orders.length === 1) {
+      foToShipment(orders[0], 'TMS API');
+    } else {
+      orders.forEach(fo => {
+        const id = generateId('SHP');
+        dispatch({ type: 'ADD_SHIPMENT', payload: {
+          id, shipmentNo: id, status: 'OPEN', source: 'TMS API',
+          bu: fo.bu || channelBU, product: fo.productType || channelProduct,
+          routeName: fo.route || '', customer: fo.customerName || fo.customer || '',
+          driver: '', plate: '', totalQty: fo.quantity || 0,
+          created: new Date().toISOString().split('T')[0],
+          stages: [], consolidatedFOs: [],
+        }});
+      });
+      window.alert(`${orders.length} shipments imported from TMS in OPEN status.`);
+    }
   };
 
   // ========== View Routing ==========
