@@ -27,6 +27,7 @@ const initialState = {
     { id: 3, text: 'Miles violation on Stage 2', time: '1h ago', icon: '⚠️', read: false },
   ],
   currentUser: { name: 'Somchai K.', role: 'Dispatcher', bu: 'LPG' },
+  liveTickerData: { fo: 'FO-2026-0003', shipment: 'SHP-2026-004', driver: 'อนุชา บุญมาก', product: 'LPG', customer: 'หจก.ตั้งไพบูลย์' },
   // Read-only config references kept in state for convenience
   employees,
   trucks,
@@ -134,6 +135,10 @@ function appReducer(state, action) {
       const newRows2 = state.awaitingRows.map(a => a.id === action.payload.id ? { ...a, ...action.payload } : a);
       return { ...state, awaitingRows: newRows2, awaitingSettlement: newRows2 };
     }
+
+    // --- Live Ticker ---
+    case 'UPDATE_LIVE_TICKER':
+      return { ...state, liveTickerData: { ...state.liveTickerData, ...action.payload } };
 
     // --- Notifications ---
     case 'ADD_NOTIFICATION':

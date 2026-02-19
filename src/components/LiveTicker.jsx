@@ -2,28 +2,28 @@ import { useApp } from '../contexts/AppContext';
 
 export default function LiveTicker() {
   const { state } = useApp();
-  const { liveTickerData } = state;
+  const data = state.liveTickerData || {};
 
   const fields = [
-    { label: 'FO', value: liveTickerData.fo },
-    { label: 'SHP', value: liveTickerData.shipment },
-    { label: 'Driver', value: liveTickerData.driver },
-    { label: 'Product', value: liveTickerData.product },
-    { label: 'Customer', value: liveTickerData.customer },
+    { label: 'FO', value: data.fo || '—' },
+    { label: 'SHP', value: data.shipment || '—' },
+    { label: 'Driver', value: data.driver || '—' },
+    { label: 'Product', value: data.product || '—' },
+    { label: 'Customer', value: data.customer || '—' },
   ];
 
   return (
-    <div className="live-ticker">
-      <div className="live-badge">
-        <span className="live-badge-dot" />
-        LIVE
+    <div className="flex items-center gap-2 px-6 py-1.5 bg-gray-900 text-white text-xs overflow-hidden">
+      <div className="flex items-center gap-1.5 flex-shrink-0">
+        <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+        <span className="font-bold text-red-400">LIVE</span>
       </div>
-      <div className="live-ticker-fields">
+      <div className="flex items-center gap-3 overflow-x-auto">
         {fields.map((f, i) => (
-          <div key={f.label} className="live-ticker-field">
-            {i > 0 && <span className="live-ticker-sep" />}
-            <span className="live-ticker-label">{f.label}:</span>
-            <span className="live-ticker-value">{f.value}</span>
+          <div key={f.label} className="flex items-center gap-1 whitespace-nowrap">
+            {i > 0 && <span className="text-gray-600 mx-1">|</span>}
+            <span className="text-gray-400 font-medium">{f.label}:</span>
+            <span className="text-white font-semibold">{f.value}</span>
           </div>
         ))}
       </div>

@@ -4,6 +4,7 @@ import { useApp } from '../contexts/AppContext';
 const tabs = [
   { key: 'shipments',     icon: '🚛', labelKey: 'modules.shipments' },
   { key: 'reportin',      icon: '📥', labelKey: 'modules.reportIn' },
+  { key: 'cashadvance',   icon: '💵', labelKey: 'modules.cashAdvance' },
   { key: 'settlement',    icon: '💰', labelKey: 'modules.settlement' },
 ];
 
@@ -17,7 +18,8 @@ export default function ModuleTabs() {
       s.riStatus === 'pending' || s.riStatus === 'awaiting' || s.riStatus === 'draft' || s.riStatus === 'in_progress'
     ).length || 0;
     const stl = state.awaitingRows?.filter(r => r.status === 'awaiting').length || 0;
-    return { shipments: shp, reportin: ri, settlement: stl };
+    const ca = state.shipments?.filter(s => s.status === 'DISPATCHED' || s.status === 'COMPLETED').length || 0;
+    return { shipments: shp, reportin: ri, cashadvance: ca, settlement: stl };
   };
 
   const counts = getCounts();

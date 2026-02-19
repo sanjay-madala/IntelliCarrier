@@ -9,6 +9,7 @@ export const translations = {
       freightOrders: 'Freight Orders',
       shipments: 'Shipments',
       reportIn: 'Report-In',
+      cashAdvance: 'Cash Advance',
       settlement: 'Settlement',
     },
     freightOrders: {
@@ -1107,6 +1108,7 @@ export const translations = {
       freightOrders: 'คำสั่งขนส่ง',
       shipments: 'งานขนส่ง',
       reportIn: 'รายงานเข้า',
+      cashAdvance: 'เงินสดล่วงหน้า',
       settlement: 'การชำระเงิน',
     },
     freightOrders: {
