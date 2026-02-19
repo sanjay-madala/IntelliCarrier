@@ -11,7 +11,7 @@ import FleetSuggestModal from './FleetSuggestModal';
 import EmployeeSearchModal from './EmployeeSearchModal';
 import StageSwapModal from './StageSwapModal';
 import {
-  pCfg, BU_OPTIONS, PRODUCT_TYPE_OPTIONS, SITE_OPTIONS,
+  pCfg, BU_OPTIONS, PRODUCT_TYPE_OPTIONS, SITE_OPTIONS, PRODUCT_SUBTYPE_OPTIONS,
   SHIPMENT_TYPE_OPTIONS, SHIPPING_TYPE_OPTIONS, ROUTE_OPTIONS,
   CUSTOM_STAGE1_OPTIONS, CUSTOM_STAGE2_OPTIONS, CUSTOM_STAGE3_OPTIONS, CUSTOM_STAGE4_OPTIONS,
   YARD_OPTIONS, NGV_QUALITY_STATIONS, SCA_TRANSPORT_FEE_OPTIONS, SCA_TRIP_PAY_OPTIONS,
@@ -27,13 +27,15 @@ const defaultStages = [
 ];
 
 // ==================== DRIVER/HELPER ROWS ====================
-const DRIVER_ROLES_KEYS = [
+const BASE_DRIVER_ROLES_KEYS = [
   { key: 'driver1', labelKey: 'shipmentForm.driverRole1', required: true },
   { key: 'driver2', labelKey: 'shipmentForm.driverRole2', required: false },
-  { key: 'driver3', labelKey: 'shipmentForm.driverRole3', required: false },
-  { key: 'driver4', labelKey: 'shipmentForm.driverRole4', required: false },
   { key: 'helper1', labelKey: 'shipmentForm.helperRole1', required: false },
   { key: 'helper2', labelKey: 'shipmentForm.helperRole2', required: false },
+];
+const EXTRA_0636_ROLES = [
+  { key: 'driverFill', labelKey: 'shipmentForm.driverFill', required: false },
+  { key: 'driverUnload', labelKey: 'shipmentForm.driverUnload', required: false },
 ];
 
 // Stage type badge colors
@@ -50,7 +52,11 @@ export default function ShipmentForm({ shipment, selectedFO, channel, onBack, is
   const { dispatch } = useApp();
   const pc = pCfg(channel?.product || selectedFO?.product || shipment?.product || 'LPG');
 
-  // Resolve driver role labels with translations
+  // Resolve driver role labels with translations — add extra roles for site 0636
+  const currentSite = form.site || selectedFO?.site || '';
+  const DRIVER_ROLES_KEYS = currentSite === '0636'
+    ? [...BASE_DRIVER_ROLES_KEYS, ...EXTRA_0636_ROLES]
+    : BASE_DRIVER_ROLES_KEYS;
   const DRIVER_ROLES = DRIVER_ROLES_KEYS.map(r => ({ ...r, label: t(r.labelKey) }));
 
   // ==================== FORM STATE ====================
@@ -63,8 +69,11 @@ export default function ShipmentForm({ shipment, selectedFO, channel, onBack, is
     shippingType: shipment?.shippingType || '01',
     route: selectedFO?.route || shipment?.route || '',
     wbs: selectedFO?.wbs || shipment?.wbs || '',
-    contractDate: '',
-    plannedDate: '',
+    productSubtype: shipment?.productSubtype || '',
+    contractDate: new Date().toISOString().split('T')[0],
+    plannedDate: new Date().toISOString().slice(0, 16),
+    dispatchDate: new Date().toISOString().slice(0, 16),
+    vehicleReceiveDate: new Date().toISOString().slice(0, 16),
     truck: shipment?.truck || '',
     trailer: shipment?.trailer || '',
     vehicleNo: shipment?.vehicleNo || '',
@@ -98,12 +107,13 @@ export default function ShipmentForm({ shipment, selectedFO, channel, onBack, is
   const [consolidatedFOs, setConsolidatedFOs] = useState([]);
 
   // NGV specific state
+  const nowDT = new Date().toISOString().slice(0, 16);
   const [ngvData, setNgvData] = useState({
-    receiveDate: '', refDate: '', dispatchDate: '', refNo: '',
-    custNotify: '', custPSI: '', pairedVehicle: '', sentFrom: '',
-    custOrder: '', brokenTubeDate: '', remark: '',
-    mainTube: { no: 'NGV-T001', psi: 3200, weight: 4250, temp: 32 },
-    pillarTube: { no: 'NGV-P001', psi: 3100, weight: 4100, temp: 33 },
+    receiveDate: nowDT, refDate: nowDT, dispatchDate: '', refNo: '',
+    custNotifyDate: nowDT, custPSI: '', pairedVehicle: '', sentFrom: '',
+    custOrder: '', fullTubeDate: '', remark: '',
+    heavyTube: { no: 'NGV-T001', weight: 4250, psi: 3200, kg: 4250, temp: 32 },
+    lightTube: { no: 'NGV-P001', weight: 4100, psi: 3100, kg: 4100, temp: 33 },
     qualityReadings: [1, 2, 3, 4].map((_, i) => ({
       station: NGV_QUALITY_STATIONS[i], temp1: 0, temp2: 0, pressure: 0, alc1: 0, alc2: 0, note: '',
     })),
@@ -116,9 +126,13 @@ export default function ShipmentForm({ shipment, selectedFO, channel, onBack, is
       { shipTo: '269307', name: 'บจก. ชุลออยล์ เซอร์วิส', code: 'SH-001', deliveryNo: '8023742938', comps: [
         { comp: '001', qty: 9000, status: 'Y ส่งได้' }, { comp: '002', qty: 6000, status: 'Y ส่งได้' },
         { comp: '004', qty: 5000, status: 'Y ส่งได้' }, { comp: '—', qty: 0, status: '—' },
+        { comp: '—', qty: 0, status: '—' }, { comp: '—', qty: 0, status: '—' },
+        { comp: '—', qty: 0, status: '—' }, { comp: '—', qty: 0, status: '—' },
       ]},
       { shipTo: '240217', name: 'บจก. ไอ อาร์ พี ฟิวเจอร์', code: 'IRP-001', deliveryNo: '8023742937', comps: [
         { comp: '003', qty: 8000, status: 'Y ส่งได้' }, { comp: '—', qty: 0, status: '—' },
+        { comp: '—', qty: 0, status: '—' }, { comp: '—', qty: 0, status: '—' },
+        { comp: '—', qty: 0, status: '—' }, { comp: '—', qty: 0, status: '—' },
         { comp: '—', qty: 0, status: '—' }, { comp: '—', qty: 0, status: '—' },
       ]},
     ],
@@ -203,10 +217,33 @@ export default function ShipmentForm({ shipment, selectedFO, channel, onBack, is
   };
 
   const addStage = () => {
+    const last = stages[stages.length - 1];
     setStages(prev => [...prev, {
-      stage: prev.length, depNo: '', departure: '', destNo: '', destination: '',
+      stage: prev.length, depNo: last?.destNo || '', departure: last?.destination || '', destNo: '', destination: '',
       type: 'Transport', plannedArr: '', plannedDep: '', distance: 0,
     }]);
+  };
+
+  const removeStage = (index) => {
+    if (stages.length <= 1) return;
+    setStages(prev => prev.filter((_, i) => i !== index).map((s, i) => ({ ...s, stage: i })));
+  };
+
+  const updateStageField = (index, field, value) => {
+    setStages(prev => prev.map((s, i) => {
+      if (i !== index) return s;
+      const updated = { ...s, [field]: value };
+      // Auto-fill name from SITE_OPTIONS when selecting a point number
+      if (field === 'depNo') {
+        const site = SITE_OPTIONS.find(o => o.value === value);
+        if (site) updated.departure = site.label.split(' — ')[1] || site.label;
+      }
+      if (field === 'destNo') {
+        const site = SITE_OPTIONS.find(o => o.value === value);
+        if (site) updated.destination = site.label.split(' — ')[1] || site.label;
+      }
+      return updated;
+    }));
   };
 
   const totalDistance = stages.reduce((sum, s) => sum + (s.distance || 0), 0);
@@ -363,19 +400,27 @@ export default function ShipmentForm({ shipment, selectedFO, channel, onBack, is
       <CollapsibleSection title={t('shipmentForm.shipmentHeader')}>
         <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-3">
           <FormField label={t('shipmentForm.shipmentNo')} value={form.shipmentNo} disabled />
+          <FormField label="หน่วยงาน (Site)" type="select" value={form.site || selectedFO?.site || ''} onChange={v => updateForm('site', v)}
+            options={SITE_OPTIONS} required />
+          <FormField label={t('shipmentForm.route')} type="select" value={form.route} onChange={handleRouteChange}
+            options={ROUTE_OPTIONS.map(r => ({ value: r.value, label: r.label }))} required />
           <FormField label={t('shipmentForm.shipmentType')} type="select" value={form.shipmentType} onChange={v => updateForm('shipmentType', v)}
-            options={SHIPMENT_TYPE_OPTIONS} required />
+            options={SHIPMENT_TYPE_OPTIONS} />
           <FormField label={t('shipmentForm.shippingType')} type="select" value={form.shippingType} onChange={v => updateForm('shippingType', v)}
-            options={SHIPPING_TYPE_OPTIONS} required />
+            options={SHIPPING_TYPE_OPTIONS} />
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-3">
+          <FormField label="ชนิดสินค้า" type="select" value={form.productSubtype} onChange={v => updateForm('productSubtype', v)}
+            options={PRODUCT_SUBTYPE_OPTIONS} placeholder="— Select —" />
+          <FormField label={t('shipmentForm.contractWBS')} value={form.wbs} onChange={v => updateForm('wbs', v)} required />
+          <FormField label="วันที่สัญญา" type="date" value={form.contractDate} onChange={v => updateForm('contractDate', v)} required />
           <FormField label={t('shipmentForm.productType')} value={currentProduct} disabled />
           <FormField label={t('shipmentForm.buSite')} value={`${form.bu || selectedFO?.bu || ''} / ${form.site || selectedFO?.site || ''}`} disabled />
         </div>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
-          <FormField label={t('shipmentForm.route')} type="select" value={form.route} onChange={handleRouteChange}
-            options={ROUTE_OPTIONS.map(r => ({ value: r.value, label: r.label }))} required />
-          <FormField label={t('shipmentForm.contractWBS')} value={form.wbs} onChange={v => updateForm('wbs', v)} required />
-          <FormField label={t('shipmentForm.contractDate')} type="date" value={form.contractDate} onChange={v => updateForm('contractDate', v)} required />
-          <FormField label={t('shipmentForm.plannedDateTime')} type="datetime-local" value={form.plannedDate} onChange={v => updateForm('plannedDate', v)} required />
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-3">
+          <FormField label="วัน/เวลา ตามแผน" type="datetime-local" value={form.plannedDate} onChange={v => updateForm('plannedDate', v)} required />
+          <FormField label="วัน/เวลา จ่ายงาน" type="datetime-local" value={form.dispatchDate} onChange={v => updateForm('dispatchDate', v)} />
+          <FormField label="วัน/เวลา รับรถ" type="datetime-local" value={form.vehicleReceiveDate} onChange={v => updateForm('vehicleReceiveDate', v)} />
         </div>
 
         {/* Custom Route Fields */}
@@ -418,7 +463,7 @@ export default function ShipmentForm({ shipment, selectedFO, channel, onBack, is
         <InfoStrip variant="info" icon="ℹ️">
           {t('shipmentForm.vehicleInfo')}
         </InfoStrip>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-3">
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mt-3">
           <div>
             <label className="block text-xs font-medium text-text-sec mb-1"><span className="text-error">*</span> {t('shipmentForm.truckPlate')}</label>
             <div className="flex">
@@ -444,7 +489,6 @@ export default function ShipmentForm({ shipment, selectedFO, channel, onBack, is
               </button>
             </div>
           </div>
-          <FormField label={t('shipmentForm.truckType')} value={form.truckType} disabled />
         </div>
         {!isEditMode && (
           <button onClick={() => setShowFleetSuggest(true)} className="mt-3 px-3 py-1.5 rounded bg-primary text-white text-table font-medium hover:bg-primary-hover">
@@ -550,14 +594,24 @@ export default function ShipmentForm({ shipment, selectedFO, channel, onBack, is
                       s.type === 'First' ? 'bg-blue-600' : s.type === 'Transport' ? 'bg-orange-500' : s.type === 'Loading Transfer' || s.type === 'Customer' ? 'bg-green-600' : 'bg-gray-500'
                     }`}>{s.stage}</span>
                   </td>
-                  <td className="px-2 py-2 text-xs font-mono text-text-muted">{s.depNo}</td>
-                  <td className="px-2 py-2 text-table">{s.departure}</td>
-                  <td className="px-2 py-2 text-xs font-mono text-text-muted">{s.destNo}</td>
-                  <td className="px-2 py-2 text-table">{s.destination}</td>
+                  <td className="px-2 py-2">
+                    <select value={s.depNo} onChange={e => updateStageField(i, 'depNo', e.target.value)} className="w-full border border-border rounded px-1 py-1 text-xs">
+                      <option value="">— Select —</option>
+                      {SITE_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                    </select>
+                  </td>
+                  <td className="px-2 py-2 text-table text-xs">{s.departure || '—'}</td>
+                  <td className="px-2 py-2">
+                    <select value={s.destNo} onChange={e => updateStageField(i, 'destNo', e.target.value)} className="w-full border border-border rounded px-1 py-1 text-xs">
+                      <option value="">— Select —</option>
+                      {SITE_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                    </select>
+                  </td>
+                  <td className="px-2 py-2 text-table text-xs">{s.destination || '—'}</td>
                   <td className="text-center px-2 py-2">
-                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${stageTypeBadge[s.type] || 'bg-gray-100 text-gray-700'}`}>
-                      {s.type}
-                    </span>
+                    <select value={s.type} onChange={e => updateStageField(i, 'type', e.target.value)} className="border border-border rounded px-1 py-0.5 text-xs">
+                      {['First', 'Transport', 'Loading Transfer', 'Customer', 'Last'].map(t => <option key={t} value={t}>{t}</option>)}
+                    </select>
                   </td>
                   <td className="px-2 py-2">
                     <input type="datetime-local" value={s.plannedArr} onChange={e => {
@@ -571,14 +625,15 @@ export default function ShipmentForm({ shipment, selectedFO, channel, onBack, is
                       setStages(prev => prev.map((st, idx) => idx === i ? { ...st, plannedDep: val } : st));
                     }} className="w-full border border-border rounded px-1.5 py-1 text-xs" />
                   </td>
-                  <td className="text-center px-2 py-2 font-semibold">{s.distance ? `${s.distance} km` : '—'}</td>
                   <td className="text-center px-2 py-2">
-                    {i > 0 && (
-                      <div className="flex gap-1 justify-center">
-                        <button onClick={() => handleStageSwap(i, 'up')} className="px-1.5 py-0.5 rounded border border-border bg-gray-50 hover:bg-gray-100 text-xs" title="Up">&uarr;</button>
-                        <button onClick={() => handleStageSwap(i, 'down')} className="px-1.5 py-0.5 rounded border border-border bg-gray-50 hover:bg-gray-100 text-xs" title="Down">&darr;</button>
-                      </div>
-                    )}
+                    <input type="number" value={s.distance || ''} onChange={e => updateStageField(i, 'distance', Number(e.target.value))} className="w-14 border border-border rounded px-1 py-0.5 text-xs text-center" placeholder="km" />
+                  </td>
+                  <td className="text-center px-2 py-2">
+                    <div className="flex gap-1 justify-center">
+                      {i > 0 && <button onClick={() => handleStageSwap(i, 'up')} className="px-1.5 py-0.5 rounded border border-border bg-gray-50 hover:bg-gray-100 text-xs" title="Up">&uarr;</button>}
+                      {i < stages.length - 1 && <button onClick={() => handleStageSwap(i, 'down')} className="px-1.5 py-0.5 rounded border border-border bg-gray-50 hover:bg-gray-100 text-xs" title="Down">&darr;</button>}
+                      {stages.length > 1 && <button onClick={() => removeStage(i)} className="px-1.5 py-0.5 rounded border border-red-300 bg-red-50 hover:bg-red-100 text-xs text-red-600" title="Remove">&times;</button>}
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -602,51 +657,43 @@ export default function ShipmentForm({ shipment, selectedFO, channel, onBack, is
             {t('shipmentForm.ngvInfo')}
           </InfoStrip>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-3 mb-3">
-            <FormField label={t('shipmentForm.ngvReceiveDate')} type="datetime-local" value={ngvData.receiveDate} onChange={v => setNgvData(d => ({ ...d, receiveDate: v }))} required />
-            <FormField label={t('shipmentForm.ngvRefDate')} type="datetime-local" value={ngvData.refDate} onChange={v => setNgvData(d => ({ ...d, refDate: v }))} required />
-            <FormField label={t('shipmentForm.ngvDispatchDate')} type="datetime-local" value={ngvData.dispatchDate} onChange={v => setNgvData(d => ({ ...d, dispatchDate: v }))} />
-            <FormField label={t('shipmentForm.ngvRefNo')} value={ngvData.refNo} onChange={v => setNgvData(d => ({ ...d, refNo: v }))} placeholder="Reference No." />
+            <FormField label="วัน/เวลา รับงาน" type="datetime-local" value={ngvData.receiveDate} onChange={v => setNgvData(d => ({ ...d, receiveDate: v }))} required />
+            <FormField label="วัน/เวลา Ref.Date" type="datetime-local" value={ngvData.refDate} onChange={v => setNgvData(d => ({ ...d, refDate: v }))} required />
+            <FormField label="Ref No." value={ngvData.refNo} onChange={v => setNgvData(d => ({ ...d, refNo: v }))} placeholder="Reference No." />
+            <FormField label="วันเวลาตู้เต็ม" type="datetime-local" value={ngvData.fullTubeDate} onChange={v => setNgvData(d => ({ ...d, fullTubeDate: v }))} />
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
-            <FormField label={t('shipmentForm.ngvCustNotify')} type="datetime-local" value={ngvData.custNotify} onChange={v => setNgvData(d => ({ ...d, custNotify: v }))} />
-            <FormField label={t('shipmentForm.ngvCustPSI')} type="number" value={ngvData.custPSI} onChange={v => setNgvData(d => ({ ...d, custPSI: v }))} placeholder="psi" />
+            <FormField label="วัน/เวลา/psi ลูกค้าแจ้ง" type="datetime-local" value={ngvData.custNotifyDate} onChange={v => setNgvData(d => ({ ...d, custNotifyDate: v }))} />
+            <FormField label="PSI ลูกค้าแจ้ง" type="number" value={ngvData.custPSI} onChange={v => setNgvData(d => ({ ...d, custPSI: v }))} placeholder="psi" />
             <FormField label={t('shipmentForm.ngvPairedVehicle')} value={ngvData.pairedVehicle} onChange={v => setNgvData(d => ({ ...d, pairedVehicle: v }))} placeholder="ทะเบียนคู่รถ" />
-            <FormField label={t('shipmentForm.ngvSentFrom')} value={ngvData.sentFrom} onChange={v => setNgvData(d => ({ ...d, sentFrom: v }))} placeholder="Source / Origin" />
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
-            <FormField label={t('shipmentForm.ngvCustOrder')} value={ngvData.custOrder} onChange={v => setNgvData(d => ({ ...d, custOrder: v }))} placeholder="Customer Order No." />
-            <FormField label={t('shipmentForm.ngvBrokenTubeDate')} type="datetime-local" value={ngvData.brokenTubeDate} onChange={v => setNgvData(d => ({ ...d, brokenTubeDate: v }))} />
             <FormField label={t('shipmentForm.ngvRemark')} value={ngvData.remark} onChange={v => setNgvData(d => ({ ...d, remark: v }))} placeholder="NGV Remark" />
           </div>
 
           {/* NGV Tube Data */}
           <div className="mt-3">
-            <h4 className="text-table font-semibold text-green-700 mb-2">{t('shipmentForm.ngvTubeData')} — ตู้หลัก / ตู้เสา</h4>
+            <h4 className="text-table font-semibold text-green-700 mb-2">{t('shipmentForm.ngvTubeData')} — ตู้หนัก / ตู้เบา</h4>
             <table className="w-full text-table border border-border-light rounded overflow-hidden">
               <thead><tr className="bg-gray-50 border-b border-border">
                 <th className="text-left px-3 py-2 font-semibold text-text-sec w-24">ตู้</th>
-                <th className="text-left px-3 py-2 font-semibold text-text-sec">หมายเลขตู้</th>
-                <th className="text-left px-3 py-2 font-semibold text-text-sec">แรงดัน (PSI)</th>
                 <th className="text-left px-3 py-2 font-semibold text-text-sec">น้ำหนัก (KG)</th>
+                <th className="text-left px-3 py-2 font-semibold text-text-sec">แรงดัน (PSI)</th>
+                <th className="text-left px-3 py-2 font-semibold text-text-sec">น้ำหนัก/Weight (KG)</th>
                 <th className="text-left px-3 py-2 font-semibold text-text-sec">อุณหภูมิ (°C)</th>
-                <th className="text-center px-3 py-2 font-semibold text-text-sec">สถานะ</th>
               </tr></thead>
               <tbody>
                 <tr className="bg-green-50 border-b border-border-light">
-                  <td className="px-3 py-2 font-bold text-green-700">ตู้หลัก</td>
-                  <td className="px-3 py-2"><input type="text" value={ngvData.mainTube.no} className="border border-border rounded px-2 py-1 text-xs w-24" readOnly /></td>
-                  <td className="px-3 py-2"><input type="number" value={ngvData.mainTube.psi} className="border border-border rounded px-2 py-1 text-xs w-16" readOnly /></td>
-                  <td className="px-3 py-2"><input type="number" value={ngvData.mainTube.weight} className="border border-border rounded px-2 py-1 text-xs w-16" readOnly /></td>
-                  <td className="px-3 py-2"><input type="number" value={ngvData.mainTube.temp} className="border border-border rounded px-2 py-1 text-xs w-14" readOnly /></td>
-                  <td className="text-center px-3 py-2"><span className="px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">✓ {t('shipmentForm.normalStatus')}</span></td>
+                  <td className="px-3 py-2 font-bold text-green-700">ตู้หนัก</td>
+                  <td className="px-3 py-2"><input type="number" value={ngvData.heavyTube.weight} onChange={e => setNgvData(d => ({ ...d, heavyTube: { ...d.heavyTube, weight: Number(e.target.value) } }))} className="border border-border rounded px-2 py-1 text-xs w-20" /></td>
+                  <td className="px-3 py-2"><input type="number" value={ngvData.heavyTube.psi} onChange={e => setNgvData(d => ({ ...d, heavyTube: { ...d.heavyTube, psi: Number(e.target.value) } }))} className="border border-border rounded px-2 py-1 text-xs w-16" /></td>
+                  <td className="px-3 py-2"><input type="number" value={ngvData.heavyTube.kg} onChange={e => setNgvData(d => ({ ...d, heavyTube: { ...d.heavyTube, kg: Number(e.target.value) } }))} className="border border-border rounded px-2 py-1 text-xs w-16" /></td>
+                  <td className="px-3 py-2"><input type="number" value={ngvData.heavyTube.temp} onChange={e => setNgvData(d => ({ ...d, heavyTube: { ...d.heavyTube, temp: Number(e.target.value) } }))} className="border border-border rounded px-2 py-1 text-xs w-14" /></td>
                 </tr>
                 <tr className="border-b border-border-light">
-                  <td className="px-3 py-2 font-bold text-blue-700">ตู้เสา</td>
-                  <td className="px-3 py-2"><input type="text" value={ngvData.pillarTube.no} className="border border-border rounded px-2 py-1 text-xs w-24" readOnly /></td>
-                  <td className="px-3 py-2"><input type="number" value={ngvData.pillarTube.psi} className="border border-border rounded px-2 py-1 text-xs w-16" readOnly /></td>
-                  <td className="px-3 py-2"><input type="number" value={ngvData.pillarTube.weight} className="border border-border rounded px-2 py-1 text-xs w-16" readOnly /></td>
-                  <td className="px-3 py-2"><input type="number" value={ngvData.pillarTube.temp} className="border border-border rounded px-2 py-1 text-xs w-14" readOnly /></td>
-                  <td className="text-center px-3 py-2"><span className="px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">✓ {t('shipmentForm.normalStatus')}</span></td>
+                  <td className="px-3 py-2 font-bold text-blue-700">ตู้เบา</td>
+                  <td className="px-3 py-2"><input type="number" value={ngvData.lightTube.weight} onChange={e => setNgvData(d => ({ ...d, lightTube: { ...d.lightTube, weight: Number(e.target.value) } }))} className="border border-border rounded px-2 py-1 text-xs w-20" /></td>
+                  <td className="px-3 py-2"><input type="number" value={ngvData.lightTube.psi} onChange={e => setNgvData(d => ({ ...d, lightTube: { ...d.lightTube, psi: Number(e.target.value) } }))} className="border border-border rounded px-2 py-1 text-xs w-16" /></td>
+                  <td className="px-3 py-2"><input type="number" value={ngvData.lightTube.kg} onChange={e => setNgvData(d => ({ ...d, lightTube: { ...d.lightTube, kg: Number(e.target.value) } }))} className="border border-border rounded px-2 py-1 text-xs w-16" /></td>
+                  <td className="px-3 py-2"><input type="number" value={ngvData.lightTube.temp} onChange={e => setNgvData(d => ({ ...d, lightTube: { ...d.lightTube, temp: Number(e.target.value) } }))} className="border border-border rounded px-2 py-1 text-xs w-14" /></td>
                 </tr>
               </tbody>
             </table>
@@ -719,10 +766,12 @@ export default function ShipmentForm({ shipment, selectedFO, channel, onBack, is
               <thead><tr className="bg-gray-50 border-b border-border">
                 <th className="px-2 py-2 w-8">#</th>
                 <th className="px-2 py-2">Ship To</th><th className="px-2 py-2">Cust Name</th><th className="px-2 py-2">Cust Code</th><th className="px-2 py-2">Delivery No.</th>
-                <th className="px-2 py-2 bg-blue-50">Comp 1</th><th className="px-2 py-2 bg-blue-50">QTY 1</th><th className="px-2 py-2 bg-blue-50">Status 1</th>
-                <th className="px-2 py-2 bg-orange-50">Comp 2</th><th className="px-2 py-2 bg-orange-50">QTY 2</th><th className="px-2 py-2 bg-orange-50">Status 2</th>
-                <th className="px-2 py-2 bg-pink-50">Comp 3</th><th className="px-2 py-2 bg-pink-50">QTY 3</th><th className="px-2 py-2 bg-pink-50">Status 3</th>
-                <th className="px-2 py-2 bg-green-50">Comp 4</th><th className="px-2 py-2 bg-green-50">QTY 4</th><th className="px-2 py-2 bg-green-50">Status 4</th>
+                {[1,2,3,4,5,6,7,8].map(n => {
+                  const bg = ['bg-blue-50','bg-orange-50','bg-pink-50','bg-green-50','bg-purple-50','bg-yellow-50','bg-cyan-50','bg-red-50'][n-1];
+                  return <React.Fragment key={n}>
+                    <th className={`px-2 py-2 ${bg}`}>Comp {n}</th><th className={`px-2 py-2 ${bg}`}>QTY {n}</th><th className={`px-2 py-2 ${bg}`}>Status {n}</th>
+                  </React.Fragment>;
+                })}
               </tr></thead>
               <tbody>
                 {fuelData.deliveries.map((del, i) => (
@@ -744,7 +793,7 @@ export default function ShipmentForm({ shipment, selectedFO, channel, onBack, is
               </tbody>
             </table>
           </div>
-          <button onClick={() => setFuelData(d => ({ ...d, deliveries: [...d.deliveries, { shipTo: '', name: '', code: '', deliveryNo: '', comps: [{ comp: '—', qty: 0, status: '—' }, { comp: '—', qty: 0, status: '—' }, { comp: '—', qty: 0, status: '—' }, { comp: '—', qty: 0, status: '—' }] }] }))} className="mt-2 px-3 py-1 rounded border border-border text-table text-text-sec hover:bg-bg text-xs">{t('shipmentForm.addDelivery')}</button>
+          <button onClick={() => setFuelData(d => ({ ...d, deliveries: [...d.deliveries, { shipTo: '', name: '', code: '', deliveryNo: '', comps: Array.from({ length: 8 }, () => ({ comp: '—', qty: 0, status: '—' })) }] }))} className="mt-2 px-3 py-1 rounded border border-border text-table text-text-sec hover:bg-bg text-xs">{t('shipmentForm.addDelivery')}</button>
 
           {/* Fuel Price Reference */}
           <div className="mt-3 p-3 bg-gray-50 border border-border rounded-lg">
@@ -919,28 +968,29 @@ export default function ShipmentForm({ shipment, selectedFO, channel, onBack, is
           {/* Vehicle Data Table */}
           <h4 className="text-table font-semibold text-amber-700 mb-2">{t('shipmentForm.vehicleData')} — รายการรถที่ขนส่ง</h4>
           <div className="overflow-x-auto border border-border-light rounded">
-            <table className="w-full text-xs min-w-[1150px]">
+            <table className="w-full text-xs min-w-[900px]">
               <thead><tr className="bg-gray-50 border-b border-border">
-                <th className="px-1.5 py-2 w-8">No.</th><th className="px-1.5 py-2 w-8">Del.</th><th className="px-1.5 py-2 w-8">Pos</th>
-                <th className="px-1.5 py-2">VIN No.</th><th className="px-1.5 py-2">Model</th><th className="px-1.5 py-2">Engine No.</th><th className="px-1.5 py-2">Color</th>
-                <th className="px-1.5 py-2">Sold To</th><th className="px-1.5 py-2">Dealer Address</th><th className="px-1.5 py-2">Ship To</th><th className="px-1.5 py-2">Ship To Name</th>
-                <th className="px-1.5 py-2">Calling</th><th className="px-1.5 py-2 w-20">{t('shipmentForm.returnTruck')}</th>
+                <th className="px-1.5 py-2">VIN No.</th>
+                <th className="px-1.5 py-2">Calling No.</th>
+                <th className="px-1.5 py-2 w-10">Pos</th>
+                <th className="px-1.5 py-2">Model</th>
+                <th className="px-1.5 py-2">Sold To</th>
+                <th className="px-1.5 py-2">Sold To Address</th>
+                <th className="px-1.5 py-2">Ship To</th>
+                <th className="px-1.5 py-2">Ship To Name</th>
+                <th className="px-1.5 py-2 w-20">รถกลับ</th>
               </tr></thead>
               <tbody>
                 {scaData.vehicles.map((v, i) => (
                   <tr key={i} className="border-b border-border-light">
-                    <td className="text-center px-1.5 py-1.5">{i + 1}</td>
-                    <td className="text-center px-1.5 py-1.5"><span className="inline-block w-3.5 h-3.5 bg-yellow-300 border border-gray-300 rounded-sm"></span></td>
-                    <td className="text-center px-1.5 py-1.5 font-semibold text-amber-700">{v.pos}</td>
                     <td className="px-1.5 py-1.5"><input type="text" value={v.vin} className="border border-border rounded px-1 py-0.5 text-xs w-28" readOnly /></td>
+                    <td className="px-1.5 py-1.5"><input type="text" value={v.calling || ''} onChange={e => setScaData(d => ({ ...d, vehicles: d.vehicles.map((ve, vi) => vi === i ? { ...ve, calling: e.target.value } : ve) }))} placeholder="Calling" className="border border-border rounded px-1 py-0.5 text-xs w-24" /></td>
+                    <td className="text-center px-1.5 py-1.5 font-semibold text-amber-700">{v.pos}</td>
                     <td className="px-1.5 py-1.5"><input type="text" value={v.model} className="border border-border rounded px-1 py-0.5 text-xs w-20" readOnly /></td>
-                    <td className="px-1.5 py-1.5"><input type="text" placeholder="Engine No." className="border border-border rounded px-1 py-0.5 text-xs w-20" /></td>
-                    <td className="px-1.5 py-1.5"><input type="text" value={v.color} className="border border-border rounded px-1 py-0.5 text-xs w-14" readOnly /></td>
                     <td className="px-1.5 py-1.5 text-[11px]">{v.soldTo}</td>
                     <td className="px-1.5 py-1.5 text-[11px]">{v.dealer}</td>
                     <td className="px-1.5 py-1.5 text-[11px]">{v.shipTo}</td>
                     <td className="px-1.5 py-1.5 text-[11px]">{v.shipToName}</td>
-                    <td className="px-1.5 py-1.5"><input type="text" placeholder="Calling" className="border border-border rounded px-1 py-0.5 text-xs w-16" /></td>
                     <td className="px-1.5 py-1.5">
                       <select className="border border-border rounded px-1 py-0.5 text-xs w-full">
                         <option>{t('shipmentForm.notReturnTruck')}</option>
@@ -995,7 +1045,7 @@ export default function ShipmentForm({ shipment, selectedFO, channel, onBack, is
         </div>
         <label className="flex items-center gap-2 px-4 py-3 bg-amber-50 border border-amber-200 rounded-lg w-fit">
           <input type="checkbox" checked={form.brokenMiles} onChange={e => updateForm('brokenMiles', e.target.checked)} className="w-4 h-4 accent-orange-600" />
-          <span className="text-table font-medium text-orange-700">ไม่คิดเสีย (Broken Miles)</span>
+          <span className="text-table font-medium text-orange-700">ไมล์เสีย (Broken Miles)</span>
           <span className="text-xs text-text-muted ml-2">— If checked, validates with broken miles criteria (config 004, 005)</span>
         </label>
       </CollapsibleSection>
