@@ -12,8 +12,7 @@ import EmployeeSearchModal from './EmployeeSearchModal';
 import StageSwapModal from './StageSwapModal';
 import {
   pCfg, BU_OPTIONS, PRODUCT_TYPE_OPTIONS, SITE_OPTIONS, PRODUCT_SUBTYPE_OPTIONS,
-  SHIPMENT_TYPE_OPTIONS, SHIPPING_TYPE_OPTIONS, ROUTE_OPTIONS,
-  CUSTOM_STAGE1_OPTIONS, CUSTOM_STAGE2_OPTIONS, CUSTOM_STAGE3_OPTIONS, CUSTOM_STAGE4_OPTIONS,
+  SHIPMENT_TYPE_OPTIONS, SHIPPING_TYPE_OPTIONS, ROUTE_OPTIONS, CONNECTION_POINTS,
   YARD_OPTIONS, NGV_QUALITY_STATIONS, SCA_TRANSPORT_FEE_OPTIONS, SCA_TRIP_PAY_OPTIONS,
   APPROVED_FOS, SCA_POSITIONS, SAMPLE_CAR_CARRIER_VEHICLES,
 } from './shipmentConstants';
@@ -79,8 +78,7 @@ export default function ShipmentForm({ shipment, selectedFO, channel, onBack, is
     poNo: '',
     ticketNo: '',
     ticketDate: '',
-    // Custom route
-    customStage1: '', customStage2: '', customStage3: '', customStage4: '',
+    // Custom route handled by customRouteStages state
   });
 
   // Resolve driver role labels — add extra roles for site 0636
@@ -104,6 +102,10 @@ export default function ShipmentForm({ shipment, selectedFO, channel, onBack, is
   })) || [...defaultStages]);
 
   const [showCustomRoute, setShowCustomRoute] = useState(false);
+  const [customRouteStages, setCustomRouteStages] = useState([
+    { departure: '', destination: '' },
+    { departure: '', destination: '' },
+  ]);
   const [consolidatedFOs, setConsolidatedFOs] = useState([]);
 
   // NGV specific state
@@ -423,20 +425,64 @@ export default function ShipmentForm({ shipment, selectedFO, channel, onBack, is
           <FormField label="วัน/เวลา รับรถ" type="datetime-local" value={form.vehicleReceiveDate} onChange={v => updateForm('vehicleReceiveDate', v)} />
         </div>
 
-        {/* Custom Route Fields */}
+        {/* Custom Route — Dynamic Stages */}
         {showCustomRoute && (
-          <div className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-lg">
-            <div className="text-table font-semibold text-orange-700 mb-2">{t('shipmentForm.customRoute')}</div>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              <FormField label={t('shipmentForm.stage1Origin')} type="select" value={form.customStage1} onChange={v => updateForm('customStage1', v)} options={CUSTOM_STAGE1_OPTIONS} />
-              <FormField label={t('shipmentForm.stage2Loading')} type="select" value={form.customStage2} onChange={v => updateForm('customStage2', v)} options={CUSTOM_STAGE2_OPTIONS} />
-              <FormField label={t('shipmentForm.stage3Transfer')} type="select" value={form.customStage3} onChange={v => updateForm('customStage3', v)} options={CUSTOM_STAGE3_OPTIONS} />
-              <FormField label={t('shipmentForm.stage4Return')} type="select" value={form.customStage4} onChange={v => updateForm('customStage4', v)} options={CUSTOM_STAGE4_OPTIONS} />
+          <div className="mt-3 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+            <div className="flex items-center justify-between mb-3">
+              <div className="text-table font-semibold text-orange-700">{t('shipmentForm.customRoute')} — {customRouteStages.length} stages</div>
+              <button onClick={() => setCustomRouteStages(prev => [...prev, { departure: '', destination: '' }])}
+                className="px-3 py-1 rounded border border-orange-400 text-orange-700 text-xs font-medium hover:bg-orange-100">
+                + Add Stage
+              </button>
             </div>
-            <div className="mt-2 text-right">
-              <button className="px-3 py-1 rounded bg-orange-500 text-white text-xs font-medium hover:bg-orange-600"
-                onClick={() => { setForm(f => ({ ...f, route: 'DUMMY', customStage1: '', customStage2: '', customStage3: '', customStage4: '' })); window.alert('Dummy route created with distance 0 and type Dummy.'); }}>
-                {t('shipmentForm.createDummyRoute')}
+            <div className="space-y-2">
+              {customRouteStages.map((cs, i) => (
+                <div key={i} className="flex items-center gap-2 bg-white border border-amber-200 rounded-lg px-3 py-2">
+                  <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-orange-500 text-white text-xs font-bold flex-shrink-0">{i + 1}</span>
+                  <div className="flex-1 grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="block text-[10px] text-text-muted mb-0.5">Departure Point</label>
+                      <select value={cs.departure} onChange={e => setCustomRouteStages(prev => prev.map((s, idx) => idx === i ? { ...s, departure: e.target.value } : s))}
+                        className="w-full border border-border rounded px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-primary">
+                        <option value="">— Select Departure —</option>
+                        {CONNECTION_POINTS.map(cp => <option key={cp.value} value={cp.value}>{cp.label}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-[10px] text-text-muted mb-0.5">Destination Point</label>
+                      <select value={cs.destination} onChange={e => setCustomRouteStages(prev => prev.map((s, idx) => idx === i ? { ...s, destination: e.target.value } : s))}
+                        className="w-full border border-border rounded px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-primary">
+                        <option value="">— Select Destination —</option>
+                        {CONNECTION_POINTS.map(cp => <option key={cp.value} value={cp.value}>{cp.label}</option>)}
+                      </select>
+                    </div>
+                  </div>
+                  {customRouteStages.length > 1 && (
+                    <button onClick={() => setCustomRouteStages(prev => prev.filter((_, idx) => idx !== i))}
+                      className="px-2 py-1 rounded border border-red-300 bg-red-50 hover:bg-red-100 text-red-600 text-xs flex-shrink-0">&times;</button>
+                  )}
+                </div>
+              ))}
+            </div>
+            <div className="mt-3 flex items-center justify-between">
+              <span className="text-xs text-text-muted">{customRouteStages.filter(s => s.departure && s.destination).length} of {customRouteStages.length} stages configured</span>
+              <button className="px-3 py-1.5 rounded bg-orange-500 text-white text-xs font-medium hover:bg-orange-600"
+                onClick={() => {
+                  const built = customRouteStages.filter(s => s.departure && s.destination).map((s, i) => {
+                    const dep = CONNECTION_POINTS.find(cp => cp.value === s.departure);
+                    const dest = CONNECTION_POINTS.find(cp => cp.value === s.destination);
+                    return {
+                      stage: i, depNo: s.departure, departure: dep?.label.split(' — ')[1] || s.departure,
+                      destNo: s.destination, destination: dest?.label.split(' — ')[1] || s.destination,
+                      type: i === 0 ? 'First' : 'Transport', plannedArr: '', plannedDep: '', distance: 0,
+                    };
+                  });
+                  if (built.length === 0) { window.alert('Please configure at least one stage with departure and destination.'); return; }
+                  setStages(built);
+                  setShowCustomRoute(false);
+                  updateForm('route', 'CUSTOM');
+                }}>
+                Apply Custom Route
               </button>
             </div>
           </div>

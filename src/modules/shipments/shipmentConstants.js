@@ -366,6 +366,25 @@ export const CUSTOM_STAGE4_OPTIONS = [
   { value: '010100', label: '010100 — ลานจอดแหลมฉบัง' },
 ];
 
+// ==================== UNIFIED CONNECTION POINTS (all unique from CUSTOM_STAGE 1-4) ====================
+export const CONNECTION_POINTS = [
+  { value: '010005', label: '010005 — ท่าเรือกรุงเทพ' },
+  { value: '010007', label: '010007 — ท่าเรือบางปะกง' },
+  { value: '010011', label: '010011 — ท่าเรือ A0' },
+  { value: '010018', label: '010018 — ท่าเรือ B2' },
+  { value: '010024', label: '010024 — ท่าเรือ NPM' },
+  { value: '010025', label: '010025 — ไทยเบฟ (บางบาล)' },
+  { value: '010026', label: '010026 — โรงงานแสงโสม (นครปฐม)' },
+  { value: '010027', label: '010027 — โรงงานบุญรอด (ปทุมฯ)' },
+  { value: '010028', label: '010028 — มหพันธ์ (ลพบุรี)' },
+  { value: '010038', label: '010038 — มิชลิน (หนองแค)' },
+  { value: '010039', label: '010039 — มิชลิน (หนองรี)' },
+  { value: '010095', label: '010095 — SCSC' },
+  { value: '010097', label: '010097 — ลาดกระบัง (ประตู4)' },
+  { value: '010100', label: '010100 — ลานจอดแหลมฉบัง' },
+  { value: '010102', label: '010102 — LCH (แหลมฉบัง)' },
+];
+
 // ==================== YARD OPTIONS (Car Carrier) ====================
 export const YARD_OPTIONS = [
   { value: '1401', label: '1401 — Bang Na KM.4' },
