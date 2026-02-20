@@ -533,6 +533,7 @@ export const translations = {
         weightBefore: 'Weight Before Loading',
         weightAfter: 'Weight After Loading',
         fuelTimingHeader: 'Fuel Loading Timing',
+        noFields: 'No additional fields for this product type.',
       },
       customer: {
         sectionHeader: 'Customer Delivery Section',
@@ -580,6 +581,7 @@ export const translations = {
         temperature: 'Temperature',
         psiUnit: 'PSI',
         kgUnit: 'KG',
+        pressureWeightTemp: 'Pressure/Weight/Temp',
         // SPL container sub-table
         containerBooking: 'Booking',
         containerAgent: 'Agent',
@@ -1667,6 +1669,7 @@ export const translations = {
         weightBefore: 'น้ำหนักรถก่อนโหลด',
         weightAfter: 'น้ำหนักรถหลังโหลด',
         fuelTimingHeader: 'เวลาเติมน้ำมัน',
+        noFields: 'ไม่มีฟิลด์เพิ่มเติมสำหรับสินค้าประเภทนี้',
       },
       customer: {
         sectionHeader: 'ส่วนส่งสินค้าลูกค้า',
@@ -1714,6 +1717,7 @@ export const translations = {
         temperature: 'อุณหภูมิ',
         psiUnit: 'PSI',
         kgUnit: 'KG',
+        pressureWeightTemp: 'แรงดัน/น้ำหนัก/อุณหภูมิ',
         // SPL container sub-table
         containerBooking: 'Booking',
         containerAgent: 'Agent',

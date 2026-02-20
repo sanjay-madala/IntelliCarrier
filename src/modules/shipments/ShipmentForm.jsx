@@ -1090,14 +1090,10 @@ export default function ShipmentForm({ shipment, selectedFO, channel, onBack, is
 
           {/* Business Partner */}
           <h4 className="text-table font-semibold text-orange-700 mb-2">Business Partner — คู่ค้า</h4>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-3">
-            <FormField label="Agent" value={containerData.agent} onChange={v => setContainerData(d => ({ ...d, agent: v }))} placeholder="Agent code" />
-            <FormField label="Agent Name" value={containerData.agentName} onChange={v => setContainerData(d => ({ ...d, agentName: v }))} placeholder="Agent name" />
-          </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-2">
-            {['Ship To', 'Sold To', 'Payer', 'Bill To'].map((lbl, i) => (
+            {[{ lbl: 'Ship To', req: true }, { lbl: 'Sold To', req: true }, { lbl: 'Payer', req: false }, { lbl: 'Bill To', req: false }].map(({ lbl, req }, i) => (
               <div key={i}>
-                <label className="block text-xs font-medium text-text-sec mb-1">{i < 2 && <span className="text-error">* </span>}{lbl}</label>
+                <label className="block text-xs font-medium text-text-sec mb-1">{req && <span className="text-error">* </span>}{lbl}</label>
                 <div className="flex">
                   <input type="text" placeholder={`${lbl} Code`} className="flex-1 border border-border rounded-l px-2 py-1.5 text-table focus:outline-none focus:ring-1 focus:ring-primary" />
                   <button className="px-2 py-1.5 border border-l-0 border-border rounded-r bg-gray-50 hover:bg-gray-100 text-xs">Search</button>
@@ -1106,22 +1102,13 @@ export default function ShipmentForm({ shipment, selectedFO, channel, onBack, is
             ))}
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
-            <FormField label={t('shipmentForm.shipToName')} value={containerData.shipToName} disabled />
-            <FormField label={t('shipmentForm.soldToName')} value={containerData.soldToName} disabled />
-            <FormField label={t('shipmentForm.payerName')} value={containerData.payerName} disabled />
-            <FormField label={t('shipmentForm.billToName')} value={containerData.billToName} disabled />
+            <FormField label="ชื่อ Ship To (Ship To Name)" value={containerData.shipToName} disabled />
+            <FormField label="ชื่อ Sold To (Sold To Name)" value={containerData.soldToName} disabled />
+            <FormField label="ชื่อ Payer (Payer Name)" value={containerData.payerName} disabled />
+            <FormField label="ชื่อ Bill To (Bill To Name)" value={containerData.billToName} disabled />
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
-            <FormField label={t('shipmentForm.bookingRef')} value={containerData.booking} onChange={v => setContainerData(d => ({ ...d, booking: v }))} placeholder="BKG-EV-2026-0142" />
-            <FormField label={t('shipmentForm.shippingLine')} value={containerData.shippingLine} onChange={v => setContainerData(d => ({ ...d, shippingLine: v }))} placeholder="Evergreen / ONE / Hapag" />
-            <FormField label={t('shipmentForm.vesselVoyage')} value={containerData.vessel} onChange={v => setContainerData(d => ({ ...d, vessel: v }))} placeholder="MV EVER GIVEN / V.123" />
-            <FormField label={t('shipmentForm.noContainers')} type="number" value={containerData.containerCount} onChange={v => setContainerData(d => ({ ...d, containerCount: v }))} required />
-          </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
-            <FormField label="BL No." value={containerData.blNo} onChange={v => setContainerData(d => ({ ...d, blNo: v }))} placeholder="Bill of Lading No." />
-            <FormField label="Port of Loading" value={containerData.portOfLoading} onChange={v => setContainerData(d => ({ ...d, portOfLoading: v }))} placeholder="e.g. Bangkok" />
-            <FormField label="Port of Discharge" value={containerData.portOfDischarge} onChange={v => setContainerData(d => ({ ...d, portOfDischarge: v }))} placeholder="e.g. Singapore" />
-            <FormField label="Place of Delivery" value={containerData.placeOfDelivery} onChange={v => setContainerData(d => ({ ...d, placeOfDelivery: v }))} placeholder="Final destination" />
+            <FormField label="จำนวนตู้ (No. of Containers)" type="number" value={containerData.containerCount} onChange={v => setContainerData(d => ({ ...d, containerCount: v }))} required />
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
             <FormField label="Remark 1" value={containerData.remark1} onChange={v => setContainerData(d => ({ ...d, remark1: v }))} />
@@ -1199,64 +1186,6 @@ export default function ShipmentForm({ shipment, selectedFO, channel, onBack, is
             </div>
           </div>
 
-          {/* 11-Position Visual Layout */}
-          <h4 className="text-table font-semibold text-amber-700 mt-3 mb-2">{t('shipmentForm.positionLayout')} — ตำแหน่งบนรถ</h4>
-          <div className="flex gap-4 items-start mb-3 p-3 bg-amber-50 border border-amber-100 rounded-lg">
-            <div className="flex-shrink-0">
-              <div className="text-xs text-text-muted text-center mb-1">{t('shipmentForm.carCarrier11')}</div>
-              <div className="w-64 bg-white border-2 border-amber-500 rounded-lg p-2">
-                <div className="text-xs font-semibold text-amber-700 mb-1">▲ {t('shipmentForm.upperDeck')}</div>
-                <div className="grid grid-cols-3 gap-1 mb-2">
-                  {SCA_POSITIONS.upper.map(pos => {
-                    const hasVehicle = scaData.vehicles.some(v => v.pos === pos);
-                    return (
-                      <div key={pos} className={`text-center py-1 rounded text-xs font-semibold border ${hasVehicle ? 'bg-green-50 border-green-400 text-green-700' : 'bg-gray-100 border-gray-300 text-gray-500'}`}>
-                        {pos}<br /><span className="text-[10px]">{hasVehicle ? '✓' : '—'}</span>
-                      </div>
-                    );
-                  })}
-                </div>
-                <div className="text-xs font-semibold text-amber-900 mb-1">▼ {t('shipmentForm.lowerDeck')}</div>
-                <div className="grid grid-cols-3 gap-1">
-                  {SCA_POSITIONS.lower.map(pos => {
-                    const hasVehicle = scaData.vehicles.some(v => v.pos === pos);
-                    return (
-                      <div key={pos} className={`text-center py-1 rounded text-xs font-semibold border ${hasVehicle ? 'bg-green-50 border-green-400 text-green-700' : 'bg-gray-100 border-gray-300 text-gray-500'}`}>
-                        {pos}<br /><span className="text-[10px]">{hasVehicle ? '✓' : '—'}</span>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-              <div className="text-xs text-center mt-1 text-text-muted">{t('shipmentForm.loadedSlots')}: <strong className="text-green-600">{scaData.vehicles.length}</strong> / 11 {t('shipmentForm.slots')}</div>
-            </div>
-
-            {/* Position Summary Table */}
-            <div className="flex-1 overflow-x-auto">
-              <table className="w-full text-xs">
-                <thead><tr className="bg-white border-b border-border"><th className="px-2 py-1.5 w-10">Pos</th><th className="px-2 py-1.5">VIN No.</th><th className="px-2 py-1.5">Model</th><th className="px-2 py-1.5">Ship To</th><th className="px-2 py-1.5 w-12">Status</th></tr></thead>
-                <tbody>
-                  {scaData.vehicles.map((v, i) => (
-                    <tr key={i} className="border-b border-border-light">
-                      <td className="text-center px-2 py-1 font-semibold text-amber-700">{v.pos}</td>
-                      <td className="px-2 py-1">{v.vin}</td>
-                      <td className="px-2 py-1">{v.model}</td>
-                      <td className="px-2 py-1">{v.shipToName}</td>
-                      <td className="text-center px-2 py-1"><span className="px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-green-100 text-green-700">✓</span></td>
-                    </tr>
-                  ))}
-                  {[...SCA_POSITIONS.upper, ...SCA_POSITIONS.lower].filter(pos => !scaData.vehicles.some(v => v.pos === pos)).map(pos => (
-                    <tr key={pos} className="border-b border-border-light opacity-40">
-                      <td className="text-center px-2 py-1">{pos}</td>
-                      <td colSpan={3} className="px-2 py-1 text-text-muted">— {t('shipmentForm.emptySlot')} —</td>
-                      <td></td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-
           {/* Vehicle Data Table */}
           <div className="flex items-center justify-between mb-2">
             <h4 className="text-table font-semibold text-amber-700">{t('shipmentForm.vehicleData')} — รายการรถที่ขนส่ง</h4>
@@ -1325,29 +1254,6 @@ export default function ShipmentForm({ shipment, selectedFO, channel, onBack, is
             </button>
           )}
 
-          {/* Collection Status Summary */}
-          <h4 className="text-table font-semibold text-amber-700 mt-3 mb-2">สถานะเก็บเงิน (Collection Status Summary)</h4>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 p-3 bg-gray-50 border border-border rounded-lg">
-            <div className="text-center p-3 bg-white rounded border border-border-light">
-              <div className="text-xs text-text-muted">{t('shipmentForm.totalVehicles')}</div>
-              <div className="text-2xl font-bold text-amber-700">{scaData.vehicles.length}</div>
-            </div>
-            <div className="text-center p-3 bg-white rounded border border-border-light">
-              <div className="text-xs text-text-muted">{t('shipmentForm.shipToDestinations')}</div>
-              <div className="text-2xl font-bold text-blue-700">1</div>
-              <div className="text-xs text-text-muted">LCB แหลมฉบัง</div>
-            </div>
-            <div className="text-center p-3 bg-white rounded border border-border-light">
-              <div className="text-xs text-text-muted">{t('shipmentForm.soldToLabel')}</div>
-              <div className="text-2xl font-bold text-purple-700">1</div>
-              <div className="text-xs text-text-muted">1100297</div>
-            </div>
-            <div className="text-center p-3 bg-green-50 rounded border border-green-200">
-              <div className="text-xs text-text-muted">{t('shipmentForm.collectionFlag')}</div>
-              <div className="text-sm font-bold text-green-700">✓ {scaData.transportFee}</div>
-              <div className="text-xs text-text-muted">{t('shipmentForm.soSettlementReady')}</div>
-            </div>
-          </div>
         </CollapsibleSection>
       )}
 

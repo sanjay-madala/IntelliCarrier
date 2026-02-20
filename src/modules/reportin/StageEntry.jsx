@@ -72,10 +72,10 @@ export default function StageEntry({ shipment }) {
       // NGV customer
       waitingUnload: s.waitingUnload || false,
       cannotUnloadNgv: s.cannotUnloadNgv || false,
-      // Compartment pressure (18 rows, before/after with pressure/weight/temp)
+      // Compartment pressure (18 rows, before/after with value + psiKg)
       compartments: s.compartments || Array.from({ length: 18 }, () => ({
-        beforePressure: '', beforeWeight: '', beforeTemp: '',
-        afterPressure: '', afterWeight: '', afterTemp: '',
+        beforeValue: '', beforePsiKg: '',
+        afterValue: '', afterPsiKg: '',
       })),
       // SPL container sub-table
       containers: s.containers || [{ booking: '', agent: '', containerNo: '', seal: '', size: '', type: '', status: '' }],
@@ -119,7 +119,7 @@ export default function StageEntry({ shipment }) {
     if (!data.arrivalTime) missing.push(t('stage.form.arrival'));
     if (!data.milesStart) missing.push(t('stage.form.milesStart'));
     if (!data.milesEnd) missing.push(t('stage.form.milesEnd'));
-    if (isCustomerStage) {
+    if (isCustomerStage && isLpgChem) {
       if (!data.ticketNo) missing.push('Ticket No.');
       if (!data.faceQty) missing.push('Face Qty');
     }
@@ -230,8 +230,8 @@ export default function StageEntry({ shipment }) {
         startUnloadTime: '', finishUnloadTime: '',
         waitingUnload: false, cannotUnloadNgv: false,
         compartments: Array.from({ length: 18 }, () => ({
-          beforePressure: '', beforeWeight: '', beforeTemp: '',
-          afterPressure: '', afterWeight: '', afterTemp: '',
+          beforeValue: '', beforePsiKg: '',
+          afterValue: '', afterPsiKg: '',
         })),
         containers: [{ booking: '', agent: '', containerNo: '', seal: '', size: '', type: '', status: '' }],
       };
@@ -247,9 +247,11 @@ export default function StageEntry({ shipment }) {
   const isLocked = stage.status === 'completed';
   const product = shipment.product;
   const isFuel = product === 'FUEL';
-  const isLpgChemNgv = product === 'LPG' || product === 'CHEM' || product === 'NGV';
+  const isLpgChem = product === 'LPG' || product === 'CHEM';
   const isNgv = product === 'NGV';
+  const isSca = product === 'SCA';
   const isSpl = product === 'CONTAINER';
+  const isEmptyLoad = isNgv || isSca || isSpl; // These products show only load header, no fields
 
   const updateCompartment = (index, field, value) => {
     setStageData(prev => {
@@ -521,142 +523,204 @@ export default function StageEntry({ shipment }) {
           <h4 className="text-sm font-semibold mb-3 flex items-center gap-2" style={{ color: '#ea580c' }}>
             {'🏭'} {t('stage.loading.sectionHeader')}
           </h4>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <div>
-              <label className="block text-label font-medium text-text-sec mb-1">
-                {t('stage.loading.weightBefore')} <span className="text-error">*</span>
-              </label>
-              <input type="number" value={data.weightBefore} onChange={e => updateField('weightBefore', e.target.value)} disabled={isLocked} className={inputClass} placeholder="kg" />
-            </div>
-            <div>
-              <label className="block text-label font-medium text-text-sec mb-1">{t('stage.loading.weightAfter')}</label>
-              <input type="number" value={data.weightAfter} onChange={e => updateField('weightAfter', e.target.value)} disabled={isLocked} className={inputClass} placeholder="kg" />
-            </div>
-          </div>
 
-          {/* Fuel Loading: 4 extra datetime fields */}
-          {isFuel && (
-            <div className="mt-4">
-              <h5 className="text-xs font-semibold text-text-sec uppercase tracking-wide mb-2">{t('stage.loading.fuelTimingHeader')}</h5>
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
-                <div>
-                  <label className="block text-label font-medium text-text-sec mb-1">{t('stage.fields.receiveDocTime')}</label>
-                  <input type="datetime-local" value={data.receiveDocTime} onChange={e => updateField('receiveDocTime', e.target.value)} disabled={isLocked} className={inputClass} />
-                </div>
-                <div>
-                  <label className="block text-label font-medium text-text-sec mb-1">{t('stage.fields.startLoadTime')}</label>
-                  <input type="datetime-local" value={data.startLoadTime} onChange={e => updateField('startLoadTime', e.target.value)} disabled={isLocked} className={inputClass} />
-                </div>
-                <div>
-                  <label className="block text-label font-medium text-text-sec mb-1">{t('stage.fields.finishLoadTime')}</label>
-                  <input type="datetime-local" value={data.finishLoadTime} onChange={e => updateField('finishLoadTime', e.target.value)} disabled={isLocked} className={inputClass} />
-                </div>
-                <div>
-                  <label className="block text-label font-medium text-text-sec mb-1">{t('stage.fields.ticketReceiveTime')}</label>
-                  <input type="datetime-local" value={data.ticketReceiveTime} onChange={e => updateField('ticketReceiveTime', e.target.value)} disabled={isLocked} className={inputClass} />
-                </div>
+          {/* LPG/CHEM: Standard weight fields */}
+          {isLpgChem && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div>
+                <label className="block text-label font-medium text-text-sec mb-1">
+                  {t('stage.loading.weightBefore')} <span className="text-error">*</span>
+                </label>
+                <input type="number" value={data.weightBefore} onChange={e => updateField('weightBefore', e.target.value)} disabled={isLocked} className={inputClass} placeholder="kg" />
+              </div>
+              <div>
+                <label className="block text-label font-medium text-text-sec mb-1">{t('stage.loading.weightAfter')}</label>
+                <input type="number" value={data.weightAfter} onChange={e => updateField('weightAfter', e.target.value)} disabled={isLocked} className={inputClass} placeholder="kg" />
               </div>
             </div>
+          )}
+
+          {/* FUEL: Only 4 datetime fields */}
+          {isFuel && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+              <div>
+                <label className="block text-label font-medium text-text-sec mb-1">{t('stage.fields.receiveDocTime')}</label>
+                <input type="datetime-local" value={data.receiveDocTime} onChange={e => updateField('receiveDocTime', e.target.value)} disabled={isLocked} className={inputClass} />
+              </div>
+              <div>
+                <label className="block text-label font-medium text-text-sec mb-1">{t('stage.fields.startLoadTime')}</label>
+                <input type="datetime-local" value={data.startLoadTime} onChange={e => updateField('startLoadTime', e.target.value)} disabled={isLocked} className={inputClass} />
+              </div>
+              <div>
+                <label className="block text-label font-medium text-text-sec mb-1">{t('stage.fields.finishLoadTime')}</label>
+                <input type="datetime-local" value={data.finishLoadTime} onChange={e => updateField('finishLoadTime', e.target.value)} disabled={isLocked} className={inputClass} />
+              </div>
+              <div>
+                <label className="block text-label font-medium text-text-sec mb-1">{t('stage.fields.ticketReceiveTime')}</label>
+                <input type="datetime-local" value={data.ticketReceiveTime} onChange={e => updateField('ticketReceiveTime', e.target.value)} disabled={isLocked} className={inputClass} />
+              </div>
+            </div>
+          )}
+
+          {/* NGV/SCA/SPL: Empty — just header, no fields */}
+          {isEmptyLoad && (
+            <div className="text-xs text-text-muted italic">{t('stage.loading.noFields')}</div>
           )}
         </div>
       )}
 
-      {/* Conditional: Customer Section */}
+      {/* Conditional: Customer Section — Product-specific */}
       {isCustomerStage && (
         <div className="border-2 border-dashed rounded-lg p-4" style={{ borderColor: '#22c55e' }}>
           <h4 className="text-sm font-semibold mb-3 flex items-center gap-2" style={{ color: '#16a34a' }}>
             {'👤'} {t('stage.customer.sectionHeader')}
           </h4>
 
-          {/* Ticket Fields */}
-          <div className="mb-4">
-            <h5 className="text-xs font-semibold text-text-sec uppercase tracking-wide mb-2">{t('stage.customer.ticketInfo')}</h5>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-              <div>
-                <label className="block text-label font-medium text-text-sec mb-1">
-                  {t('stage.fields.ticketDocNo')} <span className="text-error">*</span>
-                </label>
-                <input value={data.ticketNo} onChange={e => updateField('ticketNo', e.target.value)} disabled={isLocked} className={inputClass} placeholder="Ticket No." />
-              </div>
-              <div>
-                <label className="block text-label font-medium text-text-sec mb-1">
-                  {t('stage.fields.ticketDocDate')} <span className="text-error">*</span>
-                </label>
-                <input type="date" value={data.ticketDate} onChange={e => updateField('ticketDate', e.target.value)} disabled={isLocked} className={inputClass} />
-              </div>
-              <div>
-                <label className="block text-label font-medium text-text-sec mb-1">{t('stage.customer.poNo')}</label>
-                <input value={data.poNo} onChange={e => updateField('poNo', e.target.value)} disabled={isLocked} className={inputClass} placeholder={t('stage.customer.poPlaceholder')} />
-              </div>
-            </div>
-          </div>
-
-          {/* Quantity Fields */}
-          <div className="mb-4">
-            <h5 className="text-xs font-semibold text-text-sec uppercase tracking-wide mb-2">{t('stage.customer.quantity')}</h5>
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
-              <div>
-                <label className="block text-label font-medium text-text-sec mb-1">
-                  {t('stage.fields.faceQty')} <span className="text-error">*</span>
-                </label>
-                <input type="number" value={data.faceQty} onChange={e => updateField('faceQty', e.target.value)} disabled={isLocked} className={inputClass} placeholder="Face Qty" />
-              </div>
-              <div>
-                <label className="block text-label font-medium text-text-sec mb-1">
-                  {t('stage.fields.actualQty')} <span className="text-error">*</span>
-                </label>
-                <input type="number" value={data.actualQty} onChange={e => updateField('actualQty', e.target.value)} disabled={isLocked} className={inputClass} placeholder="Actual Qty" />
-              </div>
-              <div>
-                <label className="block text-label font-medium text-text-sec mb-1">{t('stage.fields.weightBeforeUnload')}</label>
-                <input type="number" value={data.weightBeforeUnload} onChange={e => updateField('weightBeforeUnload', e.target.value)} disabled={isLocked} className={inputClass} placeholder="kg" />
-              </div>
-              <div>
-                <label className="block text-label font-medium text-text-sec mb-1">{t('stage.fields.weightAfterUnload')}</label>
-                <input type="number" value={data.weightAfterUnload} onChange={e => updateField('weightAfterUnload', e.target.value)} disabled={isLocked} className={inputClass} placeholder="kg" />
+          {/* ===== LPG/CHEM: Full standard customer fields ===== */}
+          {isLpgChem && (<>
+            {/* Ticket Fields */}
+            <div className="mb-4">
+              <h5 className="text-xs font-semibold text-text-sec uppercase tracking-wide mb-2">{t('stage.customer.ticketInfo')}</h5>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-label font-medium text-text-sec mb-1">{t('stage.fields.ticketDocNo')} <span className="text-error">*</span></label>
+                  <input value={data.ticketNo} onChange={e => updateField('ticketNo', e.target.value)} disabled={isLocked} className={inputClass} placeholder="Ticket No." />
+                </div>
+                <div>
+                  <label className="block text-label font-medium text-text-sec mb-1">{t('stage.fields.ticketDocDate')} <span className="text-error">*</span></label>
+                  <input type="date" value={data.ticketDate} onChange={e => updateField('ticketDate', e.target.value)} disabled={isLocked} className={inputClass} />
+                </div>
+                <div>
+                  <label className="block text-label font-medium text-text-sec mb-1">{t('stage.customer.poNo')}</label>
+                  <input value={data.poNo} onChange={e => updateField('poNo', e.target.value)} disabled={isLocked} className={inputClass} placeholder={t('stage.customer.poPlaceholder')} />
+                </div>
               </div>
             </div>
-          </div>
+            {/* Quantity Fields */}
+            <div className="mb-4">
+              <h5 className="text-xs font-semibold text-text-sec uppercase tracking-wide mb-2">{t('stage.customer.quantity')}</h5>
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+                <div>
+                  <label className="block text-label font-medium text-text-sec mb-1">{t('stage.fields.faceQty')} <span className="text-error">*</span></label>
+                  <input type="number" value={data.faceQty} onChange={e => updateField('faceQty', e.target.value)} disabled={isLocked} className={inputClass} placeholder="Face Qty" />
+                </div>
+                <div>
+                  <label className="block text-label font-medium text-text-sec mb-1">{t('stage.fields.actualQty')} <span className="text-error">*</span></label>
+                  <input type="number" value={data.actualQty} onChange={e => updateField('actualQty', e.target.value)} disabled={isLocked} className={inputClass} placeholder="Actual Qty" />
+                </div>
+                <div>
+                  <label className="block text-label font-medium text-text-sec mb-1">{t('stage.fields.weightBeforeUnload')}</label>
+                  <input type="number" value={data.weightBeforeUnload} onChange={e => updateField('weightBeforeUnload', e.target.value)} disabled={isLocked} className={inputClass} placeholder="kg" />
+                </div>
+                <div>
+                  <label className="block text-label font-medium text-text-sec mb-1">{t('stage.fields.weightAfterUnload')}</label>
+                  <input type="number" value={data.weightAfterUnload} onChange={e => updateField('weightAfterUnload', e.target.value)} disabled={isLocked} className={inputClass} placeholder="kg" />
+                </div>
+              </div>
+            </div>
+            {/* Checkboxes */}
+            <div className="mb-4 flex flex-wrap gap-6">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" checked={data.waitDiscount} onChange={e => updateField('waitDiscount', e.target.checked)} disabled={isLocked} className="w-4 h-4 rounded border-border text-primary focus:ring-primary" />
+                <span className="text-table text-text">{t('stage.fields.waitDiscount')}</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" checked={data.cannotUnload} onChange={e => updateField('cannotUnload', e.target.checked)} disabled={isLocked} className="w-4 h-4 rounded border-border text-primary focus:ring-primary" />
+                <span className="text-table text-text">{t('stage.fields.cannotUnload')}</span>
+              </label>
+            </div>
+            {/* Timing — Plan Arrival removed per v3 */}
+            <div className="mb-4">
+              <h5 className="text-xs font-semibold text-text-sec uppercase tracking-wide mb-2">{t('stage.customer.timing')}</h5>
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-label font-medium text-text-sec mb-1">{t('stage.fields.customerPlanTime')}</label>
+                  <input type="datetime-local" value={data.customerPlanTime} onChange={e => updateField('customerPlanTime', e.target.value)} disabled={isLocked} className={inputClass} />
+                </div>
+                <div>
+                  <label className="block text-label font-medium text-text-sec mb-1">{t('stage.fields.waitStartTime')}</label>
+                  <input type="datetime-local" value={data.waitStartTime} onChange={e => updateField('waitStartTime', e.target.value)} disabled={isLocked} className={inputClass} />
+                </div>
+                <div>
+                  <label className="block text-label font-medium text-text-sec mb-1">{t('stage.fields.unloadStartTime')}</label>
+                  <input type="datetime-local" value={data.unloadStartTime} onChange={e => updateField('unloadStartTime', e.target.value)} disabled={isLocked} className={inputClass} />
+                </div>
+              </div>
+            </div>
+            {/* Remarks */}
+            <div className="mb-4">
+              <label className="block text-label font-medium text-text-sec mb-1">{t('stage.customer.remarks')}</label>
+              <textarea value={data.remarks} onChange={e => updateField('remarks', e.target.value)} disabled={isLocked} rows={3} className={inputClass} placeholder={t('stage.customer.remarksPlaceholder')} />
+            </div>
+            {/* Compartment Pressure Table — 4-column layout */}
+            <div>
+              <h5 className="text-xs font-semibold text-text-sec uppercase tracking-wide mb-2">{t('stage.fields.compartmentPressure')}</h5>
+              <div className="overflow-x-auto border border-border-light rounded">
+                <table className="w-full text-xs min-w-[600px]">
+                  <thead>
+                    <tr className="border-b border-border">
+                      <th rowSpan={2} className="px-2 py-1.5 bg-gray-50 w-8">{t('stage.fields.compartmentNo')}</th>
+                      <th colSpan={2} className="px-2 py-1.5 text-center" style={{ backgroundColor: '#f0fdf4', color: '#16a34a' }}>{t('stage.fields.beforeSection')}</th>
+                      <th colSpan={2} className="px-2 py-1.5 text-center" style={{ backgroundColor: '#fff7ed', color: '#ea580c' }}>{t('stage.fields.afterSection')}</th>
+                    </tr>
+                    <tr className="border-b border-border">
+                      <th className="px-2 py-1" style={{ backgroundColor: '#f0fdf4' }}>{t('stage.fields.pressureWeightTemp')}</th>
+                      <th className="px-2 py-1" style={{ backgroundColor: '#f0fdf4' }}>PSI / KG</th>
+                      <th className="px-2 py-1" style={{ backgroundColor: '#fff7ed' }}>{t('stage.fields.pressureWeightTemp')}</th>
+                      <th className="px-2 py-1" style={{ backgroundColor: '#fff7ed' }}>PSI / KG</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {data.compartments.map((comp, i) => (
+                      <tr key={i} className="border-b border-border-light">
+                        <td className="text-center px-2 py-1 bg-gray-50 font-semibold">{i + 1}</td>
+                        <td className="px-1 py-1" style={{ backgroundColor: '#f0fdf408' }}>
+                          <input type="number" value={comp.beforeValue} onChange={e => updateCompartment(i, 'beforeValue', e.target.value)} disabled={isLocked} className="border border-border rounded px-1 py-0.5 text-xs w-full" placeholder="0" />
+                        </td>
+                        <td className="px-1 py-1" style={{ backgroundColor: '#f0fdf408' }}>
+                          <input type="number" value={comp.beforePsiKg} onChange={e => updateCompartment(i, 'beforePsiKg', e.target.value)} disabled={isLocked} className="border border-border rounded px-1 py-0.5 text-xs w-full" placeholder="0" />
+                        </td>
+                        <td className="px-1 py-1" style={{ backgroundColor: '#fff7ed08' }}>
+                          <input type="number" value={comp.afterValue} onChange={e => updateCompartment(i, 'afterValue', e.target.value)} disabled={isLocked} className="border border-border rounded px-1 py-0.5 text-xs w-full" placeholder="0" />
+                        </td>
+                        <td className="px-1 py-1" style={{ backgroundColor: '#fff7ed08' }}>
+                          <input type="number" value={comp.afterPsiKg} onChange={e => updateCompartment(i, 'afterPsiKg', e.target.value)} disabled={isLocked} className="border border-border rounded px-1 py-0.5 text-xs w-full" placeholder="0" />
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </>)}
 
-          {/* Checkboxes — LPG/CHEM use waitDiscount/cannotUnload, NGV uses waitingUnload/cannotUnloadNgv */}
-          <div className="mb-4 flex flex-wrap gap-6">
-            {isNgv ? (
-              <>
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input type="checkbox" checked={data.waitingUnload} onChange={e => updateField('waitingUnload', e.target.checked)} disabled={isLocked} className="w-4 h-4 rounded border-border text-primary focus:ring-primary" />
-                  <span className="text-table text-text">{t('stage.fields.waitingUnload')}</span>
-                </label>
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input type="checkbox" checked={data.cannotUnloadNgv} onChange={e => updateField('cannotUnloadNgv', e.target.checked)} disabled={isLocked} className="w-4 h-4 rounded border-border text-primary focus:ring-primary" />
-                  <span className="text-table text-text">{t('stage.fields.cannotUnloadNgv')}</span>
-                </label>
-              </>
-            ) : (
-              <>
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input type="checkbox" checked={data.waitDiscount} onChange={e => updateField('waitDiscount', e.target.checked)} disabled={isLocked} className="w-4 h-4 rounded border-border text-primary focus:ring-primary" />
-                  <span className="text-table text-text">{t('stage.fields.waitDiscount')}</span>
-                </label>
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input type="checkbox" checked={data.cannotUnload} onChange={e => updateField('cannotUnload', e.target.checked)} disabled={isLocked} className="w-4 h-4 rounded border-border text-primary focus:ring-primary" />
-                  <span className="text-table text-text">{t('stage.fields.cannotUnload')}</span>
-                </label>
-              </>
-            )}
-          </div>
-
-          {/* Time Fields */}
-          <div className="mb-4">
-            <h5 className="text-xs font-semibold text-text-sec uppercase tracking-wide mb-2">{t('stage.customer.timing')}</h5>
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+          {/* ===== FUEL: Only 2 datetime fields ===== */}
+          {isFuel && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="block text-label font-medium text-text-sec mb-1">{t('stage.fields.planArrival')}</label>
-                <input type="datetime-local" value={data.planArrival} onChange={e => updateField('planArrival', e.target.value)} disabled={isLocked} className={inputClass} />
+                <label className="block text-label font-medium text-text-sec mb-1">{t('stage.fields.startUnloadTime')}</label>
+                <input type="datetime-local" value={data.startUnloadTime} onChange={e => updateField('startUnloadTime', e.target.value)} disabled={isLocked} className={inputClass} />
               </div>
               <div>
-                <label className="block text-label font-medium text-text-sec mb-1">{t('stage.fields.customerPlanTime')}</label>
-                <input type="datetime-local" value={data.customerPlanTime} onChange={e => updateField('customerPlanTime', e.target.value)} disabled={isLocked} className={inputClass} />
+                <label className="block text-label font-medium text-text-sec mb-1">{t('stage.fields.finishUnloadTime')}</label>
+                <input type="datetime-local" value={data.finishUnloadTime} onChange={e => updateField('finishUnloadTime', e.target.value)} disabled={isLocked} className={inputClass} />
               </div>
+            </div>
+          )}
+
+          {/* ===== NGV: Checkboxes + 3 fields ===== */}
+          {isNgv && (<>
+            <div className="mb-4 flex flex-wrap gap-6">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" checked={data.waitingUnload} onChange={e => updateField('waitingUnload', e.target.checked)} disabled={isLocked} className="w-4 h-4 rounded border-border text-primary focus:ring-primary" />
+                <span className="text-table text-text">{t('stage.fields.waitingUnload')}</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" checked={data.cannotUnloadNgv} onChange={e => updateField('cannotUnloadNgv', e.target.checked)} disabled={isLocked} className="w-4 h-4 rounded border-border text-primary focus:ring-primary" />
+                <span className="text-table text-text">{t('stage.fields.cannotUnloadNgv')}</span>
+              </label>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
               <div>
                 <label className="block text-label font-medium text-text-sec mb-1">{t('stage.fields.waitStartTime')}</label>
                 <input type="datetime-local" value={data.waitStartTime} onChange={e => updateField('waitStartTime', e.target.value)} disabled={isLocked} className={inputClass} />
@@ -666,92 +730,33 @@ export default function StageEntry({ shipment }) {
                 <input type="datetime-local" value={data.unloadStartTime} onChange={e => updateField('unloadStartTime', e.target.value)} disabled={isLocked} className={inputClass} />
               </div>
             </div>
-          </div>
+            <div>
+              <label className="block text-label font-medium text-text-sec mb-1">{t('stage.customer.remarks')}</label>
+              <textarea value={data.remarks} onChange={e => updateField('remarks', e.target.value)} disabled={isLocked} rows={3} className={inputClass} placeholder={t('stage.customer.remarksPlaceholder')} />
+            </div>
+          </>)}
 
-          {/* Remarks */}
-          <div>
-            <label className="block text-label font-medium text-text-sec mb-1">{t('stage.customer.remarks')}</label>
-            <textarea
-              value={data.remarks}
-              onChange={e => updateField('remarks', e.target.value)}
-              disabled={isLocked}
-              rows={3}
-              className={inputClass}
-              placeholder={t('stage.customer.remarksPlaceholder')}
-            />
-          </div>
-
-          {/* Fuel Customer: 2 extra datetime fields */}
-          {isFuel && (
-            <div className="mt-4">
-              <h5 className="text-xs font-semibold text-text-sec uppercase tracking-wide mb-2">{t('stage.customer.fuelTimingHeader')}</h5>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-label font-medium text-text-sec mb-1">{t('stage.fields.startUnloadTime')}</label>
-                  <input type="datetime-local" value={data.startUnloadTime} onChange={e => updateField('startUnloadTime', e.target.value)} disabled={isLocked} className={inputClass} />
-                </div>
-                <div>
-                  <label className="block text-label font-medium text-text-sec mb-1">{t('stage.fields.finishUnloadTime')}</label>
-                  <input type="datetime-local" value={data.finishUnloadTime} onChange={e => updateField('finishUnloadTime', e.target.value)} disabled={isLocked} className={inputClass} />
-                </div>
+          {/* ===== SCA: Only 3 fields ===== */}
+          {isSca && (<>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+              <div>
+                <label className="block text-label font-medium text-text-sec mb-1">{t('stage.fields.waitStartTime')}</label>
+                <input type="datetime-local" value={data.waitStartTime} onChange={e => updateField('waitStartTime', e.target.value)} disabled={isLocked} className={inputClass} />
+              </div>
+              <div>
+                <label className="block text-label font-medium text-text-sec mb-1">{t('stage.fields.unloadStartTime')}</label>
+                <input type="datetime-local" value={data.unloadStartTime} onChange={e => updateField('unloadStartTime', e.target.value)} disabled={isLocked} className={inputClass} />
               </div>
             </div>
-          )}
-
-          {/* LPG/CHEM/NGV Customer: 18-row Compartment Pressure Table */}
-          {isLpgChemNgv && (
-            <div className="mt-4">
-              <h5 className="text-xs font-semibold text-text-sec uppercase tracking-wide mb-2">{t('stage.fields.compartmentPressure')}</h5>
-              <div className="overflow-x-auto border border-border-light rounded">
-                <table className="w-full text-xs min-w-[700px]">
-                  <thead>
-                    <tr className="border-b border-border">
-                      <th rowSpan={2} className="px-2 py-1.5 bg-gray-50 w-8">{t('stage.fields.compartmentNo')}</th>
-                      <th colSpan={3} className="px-2 py-1.5 text-center" style={{ backgroundColor: '#f0fdf4', color: '#16a34a' }}>{t('stage.fields.beforeSection')}</th>
-                      <th colSpan={3} className="px-2 py-1.5 text-center" style={{ backgroundColor: '#fff7ed', color: '#ea580c' }}>{t('stage.fields.afterSection')}</th>
-                    </tr>
-                    <tr className="border-b border-border">
-                      <th className="px-2 py-1" style={{ backgroundColor: '#f0fdf4' }}>{t('stage.fields.pressure')} ({t('stage.fields.psiUnit')})</th>
-                      <th className="px-2 py-1" style={{ backgroundColor: '#f0fdf4' }}>{t('stage.fields.weight')} ({t('stage.fields.kgUnit')})</th>
-                      <th className="px-2 py-1" style={{ backgroundColor: '#f0fdf4' }}>{t('stage.fields.temperature')}</th>
-                      <th className="px-2 py-1" style={{ backgroundColor: '#fff7ed' }}>{t('stage.fields.pressure')} ({t('stage.fields.psiUnit')})</th>
-                      <th className="px-2 py-1" style={{ backgroundColor: '#fff7ed' }}>{t('stage.fields.weight')} ({t('stage.fields.kgUnit')})</th>
-                      <th className="px-2 py-1" style={{ backgroundColor: '#fff7ed' }}>{t('stage.fields.temperature')}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {data.compartments.map((comp, i) => (
-                      <tr key={i} className="border-b border-border-light">
-                        <td className="text-center px-2 py-1 bg-gray-50 font-semibold">{i + 1}</td>
-                        <td className="px-1 py-1" style={{ backgroundColor: '#f0fdf410' }}>
-                          <input type="number" value={comp.beforePressure} onChange={e => updateCompartment(i, 'beforePressure', e.target.value)} disabled={isLocked} className="border border-border rounded px-1 py-0.5 text-xs w-full" placeholder="PSI" />
-                        </td>
-                        <td className="px-1 py-1" style={{ backgroundColor: '#f0fdf410' }}>
-                          <input type="number" value={comp.beforeWeight} onChange={e => updateCompartment(i, 'beforeWeight', e.target.value)} disabled={isLocked} className="border border-border rounded px-1 py-0.5 text-xs w-full" placeholder="KG" />
-                        </td>
-                        <td className="px-1 py-1" style={{ backgroundColor: '#f0fdf410' }}>
-                          <input type="number" value={comp.beforeTemp} onChange={e => updateCompartment(i, 'beforeTemp', e.target.value)} disabled={isLocked} className="border border-border rounded px-1 py-0.5 text-xs w-full" />
-                        </td>
-                        <td className="px-1 py-1" style={{ backgroundColor: '#fff7ed10' }}>
-                          <input type="number" value={comp.afterPressure} onChange={e => updateCompartment(i, 'afterPressure', e.target.value)} disabled={isLocked} className="border border-border rounded px-1 py-0.5 text-xs w-full" placeholder="PSI" />
-                        </td>
-                        <td className="px-1 py-1" style={{ backgroundColor: '#fff7ed10' }}>
-                          <input type="number" value={comp.afterWeight} onChange={e => updateCompartment(i, 'afterWeight', e.target.value)} disabled={isLocked} className="border border-border rounded px-1 py-0.5 text-xs w-full" placeholder="KG" />
-                        </td>
-                        <td className="px-1 py-1" style={{ backgroundColor: '#fff7ed10' }}>
-                          <input type="number" value={comp.afterTemp} onChange={e => updateCompartment(i, 'afterTemp', e.target.value)} disabled={isLocked} className="border border-border rounded px-1 py-0.5 text-xs w-full" />
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+            <div>
+              <label className="block text-label font-medium text-text-sec mb-1">{t('stage.customer.remarks')}</label>
+              <textarea value={data.remarks} onChange={e => updateField('remarks', e.target.value)} disabled={isLocked} rows={3} className={inputClass} placeholder={t('stage.customer.remarksPlaceholder')} />
             </div>
-          )}
+          </>)}
 
-          {/* SPL (Container) Customer: Container sub-table */}
+          {/* ===== SPL: Only container sub-table ===== */}
           {isSpl && (
-            <div className="mt-4">
+            <div>
               <div className="flex items-center justify-between mb-2">
                 <h5 className="text-xs font-semibold text-text-sec uppercase tracking-wide">{t('stage.customer.containerHeader')}</h5>
                 {data.containers.length < 2 && !isLocked && (
@@ -761,13 +766,13 @@ export default function StageEntry({ shipment }) {
               <div className="overflow-x-auto border border-border-light rounded">
                 <table className="w-full text-xs">
                   <thead><tr className="bg-gray-50 border-b border-border">
-                    <th className="px-2 py-1.5">{t('stage.fields.containerBooking')}</th>
-                    <th className="px-2 py-1.5">{t('stage.fields.containerAgent')}</th>
-                    <th className="px-2 py-1.5">{t('stage.fields.containerNo')}</th>
-                    <th className="px-2 py-1.5">{t('stage.fields.containerSeal')}</th>
-                    <th className="px-2 py-1.5">{t('stage.fields.containerSize')}</th>
-                    <th className="px-2 py-1.5">{t('stage.fields.containerType')}</th>
-                    <th className="px-2 py-1.5">{t('stage.fields.containerStatus')}</th>
+                    <th className="px-2 py-1.5">Booking</th>
+                    <th className="px-2 py-1.5">Agent</th>
+                    <th className="px-2 py-1.5">Container No.</th>
+                    <th className="px-2 py-1.5">Seal No.</th>
+                    <th className="px-2 py-1.5">Size</th>
+                    <th className="px-2 py-1.5">Type</th>
+                    <th className="px-2 py-1.5">Status</th>
                   </tr></thead>
                   <tbody>
                     {data.containers.map((ctr, i) => (
@@ -778,28 +783,17 @@ export default function StageEntry({ shipment }) {
                         <td className="px-1 py-1"><input type="text" value={ctr.seal} onChange={e => updateContainer(i, 'seal', e.target.value)} disabled={isLocked} className="border border-border rounded px-1 py-0.5 text-xs w-full" /></td>
                         <td className="px-1 py-1">
                           <select value={ctr.size} onChange={e => updateContainer(i, 'size', e.target.value)} disabled={isLocked} className="border border-border rounded px-1 py-0.5 text-xs w-full">
-                            <option value="">—</option>
-                            <option value="20ft">20ft</option>
-                            <option value="40ft">40ft</option>
-                            <option value="40ft HC">40ft HC</option>
-                            <option value="45ft">45ft</option>
+                            <option value="">—</option><option value="20ft">20ft</option><option value="40ft">40ft</option><option value="40ft HC">40ft HC</option><option value="45ft">45ft</option>
                           </select>
                         </td>
                         <td className="px-1 py-1">
                           <select value={ctr.type} onChange={e => updateContainer(i, 'type', e.target.value)} disabled={isLocked} className="border border-border rounded px-1 py-0.5 text-xs w-full">
-                            <option value="">—</option>
-                            <option value="FCL">FCL</option>
-                            <option value="LCL">LCL</option>
-                            <option value="Dry">Dry</option>
-                            <option value="Reefer">Reefer</option>
+                            <option value="">—</option><option value="FCL">FCL</option><option value="LCL">LCL</option><option value="Dry">Dry</option><option value="Reefer">Reefer</option>
                           </select>
                         </td>
                         <td className="px-1 py-1">
                           <select value={ctr.status} onChange={e => updateContainer(i, 'status', e.target.value)} disabled={isLocked} className="border border-border rounded px-1 py-0.5 text-xs w-full">
-                            <option value="">—</option>
-                            <option value="Loaded">Loaded</option>
-                            <option value="Empty">Empty</option>
-                            <option value="Damaged">Damaged</option>
+                            <option value="">—</option><option value="Loaded">Loaded</option><option value="Empty">Empty</option><option value="Damaged">Damaged</option>
                           </select>
                         </td>
                       </tr>
