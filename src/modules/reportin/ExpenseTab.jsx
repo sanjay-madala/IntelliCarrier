@@ -3,26 +3,59 @@ import { useLanguage } from '../../contexts/LanguageContext';
 import { formatCurrency } from '../../utils/helpers';
 import InfoStrip from '../../components/common/InfoStrip';
 
+const expenseGroupOptions = ['ค่าใช้จ่ายต้นทุน', 'ค่าใช้จ่ายทดแทน'];
 const expenseTypes = ['Toll', 'Meal', 'Overnight', 'Ferry', 'Tip', 'Other'];
-const payTypes = ['Cash', 'Card'];
+const payTypeOptions = ['เงินสด (Cash)', 'เครดิต (Credit)'];
+const vendorOptions = ['PTT', 'Shell', 'Bangchak', 'Caltex', 'Other'];
 
 export default function ExpenseTab({ shipment, onTotalChange, allCosts }) {
   const { t } = useLanguage();
   const [expenses, setExpenses] = useState([
-    { id: 1, type: 'Toll', description: 'Motorway toll Bangkok-Chonburi', payType: 'Cash', amount: 350, receipt: true, status: 'approved' },
-    { id: 2, type: 'Meal', description: 'Driver lunch', payType: 'Cash', amount: 150, receipt: false, status: 'pending' },
-    { id: 3, type: 'Overnight', description: 'Rest stop accommodation', payType: 'Cash', amount: 800, receipt: true, status: 'approved' },
+    {
+      id: 1,
+      site: shipment?.site || 'SCG',
+      shipmentNo: shipment?.shipmentNo || '',
+      expenseGroup: 'ค่าใช้จ่ายต้นทุน',
+      date: new Date().toISOString().slice(0, 16),
+      refDoc: '',
+      driver: shipment?.driver1 || 'สมชาย พลเดช',
+      expenseType: 'Toll',
+      payType: 'เงินสด (Cash)',
+      vendor: '',
+      amount: 350,
+      remark: 'Motorway toll Bangkok-Chonburi',
+      receiptFile: null,
+      receiptName: 'toll_receipt.jpg',
+      status: 'approved',
+    },
+    {
+      id: 2,
+      site: shipment?.site || 'SCG',
+      shipmentNo: shipment?.shipmentNo || '',
+      expenseGroup: 'ค่าใช้จ่ายต้นทุน',
+      date: new Date().toISOString().slice(0, 16),
+      refDoc: '',
+      driver: shipment?.driver1 || 'สมชาย พลเดช',
+      expenseType: 'Meal',
+      payType: 'เงินสด (Cash)',
+      vendor: '',
+      amount: 150,
+      remark: 'Driver lunch',
+      receiptFile: null,
+      receiptName: '',
+      status: 'pending',
+    },
   ]);
 
   const totals = useMemo(() => ({
-    tolls: expenses.filter(e => e.type === 'Toll').reduce((s, e) => s + e.amount, 0),
-    meals: expenses.filter(e => e.type === 'Meal').reduce((s, e) => s + e.amount, 0),
-    overnight: expenses.filter(e => e.type === 'Overnight').reduce((s, e) => s + e.amount, 0),
-    other: expenses.filter(e => !['Toll', 'Meal', 'Overnight'].includes(e.type)).reduce((s, e) => s + e.amount, 0),
+    tolls: expenses.filter(e => e.expenseType === 'Toll').reduce((s, e) => s + e.amount, 0),
+    meals: expenses.filter(e => e.expenseType === 'Meal').reduce((s, e) => s + e.amount, 0),
+    overnight: expenses.filter(e => e.expenseType === 'Overnight').reduce((s, e) => s + e.amount, 0),
+    other: expenses.filter(e => !['Toll', 'Meal', 'Overnight'].includes(e.expenseType)).reduce((s, e) => s + e.amount, 0),
     total: expenses.reduce((s, e) => s + e.amount, 0),
   }), [expenses]);
 
-  const receiptsWithReceipt = expenses.filter(e => e.receipt).length;
+  const receiptsWithReceipt = expenses.filter(e => e.receiptName).length;
   const receiptsTotal = expenses.length;
 
   useEffect(() => { onTotalChange?.(totals.total, { receiptsWithReceipt, receiptsTotal }); }, [totals.total, receiptsWithReceipt, receiptsTotal, onTotalChange]);
@@ -33,11 +66,19 @@ export default function ExpenseTab({ shipment, onTotalChange, allCosts }) {
   const addExpense = () => {
     setExpenses(prev => [...prev, {
       id: Date.now(),
-      type: 'Other',
-      description: '',
-      payType: 'Cash',
+      site: shipment?.site || 'SCG',
+      shipmentNo: shipment?.shipmentNo || '',
+      expenseGroup: 'ค่าใช้จ่ายต้นทุน',
+      date: new Date().toISOString().slice(0, 16),
+      refDoc: '',
+      driver: shipment?.driver1 || '',
+      expenseType: 'Other',
+      payType: 'เงินสด (Cash)',
+      vendor: '',
       amount: 0,
-      receipt: false,
+      remark: '',
+      receiptFile: null,
+      receiptName: '',
       status: 'pending',
     }]);
   };
@@ -58,7 +99,7 @@ export default function ExpenseTab({ shipment, onTotalChange, allCosts }) {
     { icon: '💰', label: t('expense.kpi.total'),     value: totals.total,     bg: '#e0f2fe', border: '#7dd3fc', color: '#0369a1' },
   ];
 
-  const inputClass = 'w-full border border-border rounded px-2 py-1 text-table text-text focus:outline-none focus:ring-1 focus:ring-primary';
+  const inputClass = 'w-full border border-border rounded px-2.5 py-1.5 text-table text-text focus:outline-none focus:ring-1 focus:ring-primary disabled:bg-bg disabled:text-text-muted';
 
   return (
     <div className="space-y-5">
@@ -82,100 +123,116 @@ export default function ExpenseTab({ shipment, onTotalChange, allCosts }) {
         ))}
       </div>
 
-      {/* Expense Table */}
-      <div className="overflow-x-auto border border-border-light rounded-lg">
-        <table className="w-full text-table">
-          <thead>
-            <tr className="bg-bg border-b border-border">
-              <th className="text-left px-3 py-2.5 font-medium text-text-sec w-10">#</th>
-              <th className="text-left px-3 py-2.5 font-medium text-text-sec">{t('expense.table.type')}</th>
-              <th className="text-left px-3 py-2.5 font-medium text-text-sec">{t('expense.table.description')}</th>
-              <th className="text-left px-3 py-2.5 font-medium text-text-sec">{t('expense.table.payType')}</th>
-              <th className="text-left px-3 py-2.5 font-medium text-text-sec">{t('expense.table.amount')}</th>
-              <th className="text-center px-3 py-2.5 font-medium text-text-sec">{t('expense.table.receipt')}</th>
-              <th className="text-left px-3 py-2.5 font-medium text-text-sec">{t('expense.table.status')}</th>
-              <th className="text-center px-3 py-2.5 font-medium text-text-sec w-16">{t('common.delete')}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {expenses.map((exp, idx) => (
-              <tr key={exp.id} className="border-b border-border-light hover:bg-bg/30 transition-colors">
-                <td className="px-3 py-2 text-text-sec">{idx + 1}</td>
-                <td className="px-3 py-2">
-                  <select
-                    value={exp.type}
-                    onChange={e => updateExpense(exp.id, 'type', e.target.value)}
-                    className="border border-border rounded px-2 py-1 text-table"
-                  >
-                    {expenseTypes.map(et => <option key={et} value={et}>{et}</option>)}
-                  </select>
-                </td>
-                <td className="px-3 py-2">
-                  <input
-                    value={exp.description}
-                    onChange={e => updateExpense(exp.id, 'description', e.target.value)}
-                    className={inputClass}
-                    placeholder={t('expense.table.descriptionPlaceholder')}
-                  />
-                </td>
-                <td className="px-3 py-2">
-                  <select
-                    value={exp.payType}
-                    onChange={e => updateExpense(exp.id, 'payType', e.target.value)}
-                    className="border border-border rounded px-2 py-1 text-table"
-                  >
-                    {payTypes.map(p => <option key={p} value={p}>{p}</option>)}
-                  </select>
-                </td>
-                <td className="px-3 py-2">
-                  <input
-                    type="number"
-                    value={exp.amount}
-                    onChange={e => updateExpense(exp.id, 'amount', e.target.value)}
-                    className="border border-border rounded px-2 py-1 text-table w-24 text-right"
-                  />
-                </td>
-                <td className="px-3 py-2 text-center">
-                  {exp.receipt ? (
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-green-100 text-green-700 text-xs font-medium">
-                      {'📷'} {t('common.yes')}
-                    </span>
-                  ) : (
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-gray-100 text-gray-500 text-xs font-medium">
-                      {t('common.no')}
-                    </span>
-                  )}
-                </td>
-                <td className="px-3 py-2">
-                  <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
-                    exp.status === 'approved'
-                      ? 'bg-green-100 text-green-700'
-                      : exp.status === 'rejected'
-                        ? 'bg-red-100 text-red-700'
-                        : 'bg-yellow-100 text-yellow-700'
-                  }`}>
-                    {exp.status}
+      {/* Expense Entry Cards */}
+      <div className="space-y-4">
+        {expenses.map((exp, i) => (
+          <div key={exp.id} className="border border-border-light rounded-lg p-4 hover:shadow-sm transition-shadow">
+            {/* Card Header */}
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-primary text-white text-xs font-bold">
+                  {i + 1}
+                </span>
+                <span className="text-sm font-semibold text-text">{t('expense.entry.title')} #{i + 1}</span>
+              </div>
+              {expenses.length > 1 && (
+                <button onClick={() => removeExpense(exp.id)} className="text-error text-xs hover:text-red-700 font-medium transition-colors">
+                  {t('expense.entry.remove')}
+                </button>
+              )}
+            </div>
+
+            {/* Row 1: Site, Shipment No., Expense Group, Date */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 mb-3">
+              <div>
+                <label className="block text-label font-medium text-text-sec mb-1"><span className="text-error">*</span> {t('expense.form.site')}</label>
+                <input value={exp.site} disabled className={inputClass} />
+              </div>
+              <div>
+                <label className="block text-label font-medium text-text-sec mb-1"><span className="text-error">*</span> Shipment no.</label>
+                <input value={exp.shipmentNo} disabled className={inputClass} />
+              </div>
+              <div>
+                <label className="block text-label font-medium text-text-sec mb-1"><span className="text-error">*</span> {t('expense.form.expenseGroup')}</label>
+                <select value={exp.expenseGroup} onChange={e => updateExpense(exp.id, 'expenseGroup', e.target.value)} className={inputClass}>
+                  {expenseGroupOptions.map(g => <option key={g} value={g}>{g}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-label font-medium text-text-sec mb-1"><span className="text-error">*</span> {t('expense.form.date')}</label>
+                <input type="datetime-local" value={exp.date} onChange={e => updateExpense(exp.id, 'date', e.target.value)} className={inputClass} />
+              </div>
+            </div>
+
+            {/* Row 2: Ref Doc, Driver, Expense Type */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 mb-3">
+              <div>
+                <label className="block text-label font-medium text-text-sec mb-1"><span className="text-error">*</span> Ref Doc</label>
+                <input value={exp.refDoc} onChange={e => updateExpense(exp.id, 'refDoc', e.target.value)} className={inputClass} placeholder="Free text" />
+              </div>
+              <div>
+                <label className="block text-label font-medium text-text-sec mb-1"><span className="text-error">*</span> {t('expense.form.driver')}</label>
+                <input value={exp.driver} onChange={e => updateExpense(exp.id, 'driver', e.target.value)} className={inputClass} placeholder="Driver Master Data" />
+              </div>
+              <div>
+                <label className="block text-label font-medium text-text-sec mb-1"><span className="text-error">*</span> {t('expense.form.expenseType')}</label>
+                <select value={exp.expenseType} onChange={e => updateExpense(exp.id, 'expenseType', e.target.value)} className={inputClass}>
+                  {expenseTypes.map(et => <option key={et} value={et}>{et}</option>)}
+                </select>
+              </div>
+            </div>
+
+            {/* Row 3: Pay Type, Vendor, Amount */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 mb-3">
+              <div>
+                <label className="block text-label font-medium text-text-sec mb-1"><span className="text-error">*</span> {t('expense.form.payType')}</label>
+                <select value={exp.payType} onChange={e => updateExpense(exp.id, 'payType', e.target.value)} className={inputClass}>
+                  {payTypeOptions.map(p => <option key={p} value={p}>{p}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-label font-medium text-text-sec mb-1">Vendor</label>
+                <select value={exp.vendor} onChange={e => updateExpense(exp.id, 'vendor', e.target.value)} className={inputClass}>
+                  <option value="">— Select Vendor —</option>
+                  {vendorOptions.map(v => <option key={v} value={v}>{v}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-label font-medium text-text-sec mb-1"><span className="text-error">*</span> {t('expense.form.amount')}</label>
+                <input type="number" value={exp.amount} onChange={e => updateExpense(exp.id, 'amount', e.target.value)} className={inputClass + ' text-right'} />
+              </div>
+            </div>
+
+            {/* Row 4: Remark */}
+            <div className="grid grid-cols-1 gap-3 mb-3">
+              <div>
+                <label className="block text-label font-medium text-text-sec mb-1">{t('expense.form.remark')}</label>
+                <input value={exp.remark} onChange={e => updateExpense(exp.id, 'remark', e.target.value)} className={inputClass} placeholder="Free text" />
+              </div>
+            </div>
+
+            {/* Row 5: Receipt upload */}
+            <div>
+              <label className="block text-label font-medium text-text-sec mb-1">{t('expense.form.receipt')}</label>
+              <div className="flex items-center gap-3">
+                <label className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded border border-border text-xs font-medium hover:bg-gray-50 cursor-pointer">
+                  {'📷'} {t('expense.form.attachReceipt')}
+                  <input type="file" accept="image/*" className="hidden" onChange={e => {
+                    if (e.target.files?.[0]) {
+                      updateExpense(exp.id, 'receiptName', e.target.files[0].name);
+                      e.target.value = '';
+                    }
+                  }} />
+                </label>
+                {exp.receiptName && (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-green-100 text-green-700 text-xs font-medium">
+                    {'📷'} {exp.receiptName}
                   </span>
-                </td>
-                <td className="px-3 py-2 text-center">
-                  <button
-                    onClick={() => removeExpense(exp.id)}
-                    className="text-error hover:text-red-700 text-sm font-medium transition-colors"
-                  >
-                    {'🗑'}
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-          <tfoot>
-            <tr className="bg-bg font-semibold">
-              <td colSpan={4} className="px-3 py-2.5 text-right text-text-sec">{t('expense.table.totalExpenses')}:</td>
-              <td className="px-3 py-2.5 text-right text-text font-bold">{formatCurrency(totals.total)}</td>
-              <td colSpan={3}></td>
-            </tr>
-          </tfoot>
-        </table>
+                )}
+              </div>
+            </div>
+          </div>
+        ))}
       </div>
 
       {/* Add Button */}
@@ -211,7 +268,7 @@ export default function ExpenseTab({ shipment, onTotalChange, allCosts }) {
             <div className="text-2xl mb-1">{'📊'}</div>
             <div className="text-label text-text-sec font-medium">{t('expense.table.status')}</div>
             <div className="text-lg font-bold" style={{ color: '#7c3aed' }}>
-              {expenses.filter(e => e.receipt).length}/{expenses.length} {t('expense.cashAdvance.receipts')}
+              {expenses.filter(e => e.receiptName).length}/{expenses.length} {t('expense.cashAdvance.receipts')}
             </div>
           </div>
         </div>

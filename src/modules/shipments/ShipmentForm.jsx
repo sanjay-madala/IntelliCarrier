@@ -1186,9 +1186,9 @@ export default function ShipmentForm({ shipment, selectedFO, channel, onBack, is
             </div>
           </div>
 
-          {/* Vehicle Data Table */}
+          {/* Position Layout — ตำแหน่งบนรถ */}
           <div className="flex items-center justify-between mb-2">
-            <h4 className="text-table font-semibold text-amber-700">{t('shipmentForm.vehicleData')} — รายการรถที่ขนส่ง</h4>
+            <h4 className="text-table font-semibold text-amber-700">{t('shipmentForm.positionLayout')} — ตำแหน่งบนรถ</h4>
             <label className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded border border-amber-400 text-amber-700 text-xs font-medium hover:bg-amber-50 cursor-pointer">
               <span>{'📁'}</span> Upload Excel
               <input type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={(e) => {
@@ -1202,40 +1202,57 @@ export default function ShipmentForm({ shipment, selectedFO, channel, onBack, is
           <div className="overflow-x-auto border border-border-light rounded">
             <table className="w-full text-xs min-w-[900px]">
               <thead><tr className="bg-gray-50 border-b border-border">
-                <th className="px-1.5 py-2">Ship To</th>
-                <th className="px-1.5 py-2">Ship To Name</th>
-                <th className="px-1.5 py-2">Sold To</th>
-                <th className="px-1.5 py-2">Sold To Name</th>
-                <th className="px-1.5 py-2">VIN No.</th>
-                <th className="px-1.5 py-2">Calling No.</th>
-                <th className="px-1.5 py-2 w-10">Pos</th>
+                <th className="px-1.5 py-2 text-left">Pos</th>
+                <th className="px-1.5 py-2 text-left">VIN No.</th>
+                <th className="px-1.5 py-2 text-left">Ship To</th>
+                <th className="px-1.5 py-2 text-left">Ship To Name</th>
+                <th className="px-1.5 py-2 text-left">Sold To</th>
+                <th className="px-1.5 py-2 text-left">Sold To Name</th>
+                <th className="px-1.5 py-2 text-left">Calling No.</th>
                 <th className="px-1.5 py-2 w-28">Billing Status</th>
               </tr></thead>
               <tbody>
-                {scaData.vehicles.map((v, i) => (
-                  <tr key={i} className="border-b border-border-light">
-                    <td className="px-1.5 py-1.5"><input type="text" value={v.shipTo} onChange={e => setScaData(d => ({ ...d, vehicles: d.vehicles.map((ve, vi) => vi === i ? { ...ve, shipTo: e.target.value } : ve) }))} className="border border-border rounded px-1 py-0.5 text-xs w-24" /></td>
-                    <td className="px-1.5 py-1.5"><input type="text" value={v.shipToName} onChange={e => setScaData(d => ({ ...d, vehicles: d.vehicles.map((ve, vi) => vi === i ? { ...ve, shipToName: e.target.value } : ve) }))} className="border border-border rounded px-1 py-0.5 text-xs w-full" /></td>
-                    <td className="px-1.5 py-1.5"><input type="text" value={v.soldTo} onChange={e => setScaData(d => ({ ...d, vehicles: d.vehicles.map((ve, vi) => vi === i ? { ...ve, soldTo: e.target.value } : ve) }))} className="border border-border rounded px-1 py-0.5 text-xs w-24" /></td>
-                    <td className="px-1.5 py-1.5"><input type="text" value={v.dealer || ''} onChange={e => setScaData(d => ({ ...d, vehicles: d.vehicles.map((ve, vi) => vi === i ? { ...ve, dealer: e.target.value } : ve) }))} className="border border-border rounded px-1 py-0.5 text-xs w-full" /></td>
-                    <td className="px-1.5 py-1.5"><input type="text" value={v.vin} onChange={e => setScaData(d => ({ ...d, vehicles: d.vehicles.map((ve, vi) => vi === i ? { ...ve, vin: e.target.value } : ve) }))} className="border border-border rounded px-1 py-0.5 text-xs w-28" /></td>
-                    <td className="px-1.5 py-1.5"><input type="text" value={v.calling || ''} onChange={e => setScaData(d => ({ ...d, vehicles: d.vehicles.map((ve, vi) => vi === i ? { ...ve, calling: e.target.value } : ve) }))} placeholder="Calling" className="border border-border rounded px-1 py-0.5 text-xs w-24" /></td>
-                    <td className="text-center px-1.5 py-1.5 font-semibold text-amber-700">{v.pos}</td>
-                    <td className="px-1.5 py-1.5">
-                      <select className="border border-border rounded px-1 py-0.5 text-xs w-full"
-                        value={v.billingStatus || 'ไม่ใช่รถกลับ'}
-                        onChange={e => setScaData(d => ({ ...d, vehicles: d.vehicles.map((ve, vi) => vi === i ? { ...ve, billingStatus: e.target.value } : ve) }))}>
-                        <option value="รถกลับ">รถกลับ</option>
-                        <option value="ไม่ใช่รถกลับ">ไม่ใช่รถกลับ</option>
-                        <option value="แลกเปลี่ยน">แลกเปลี่ยน</option>
-                        <option value="มือสอง">มือสอง</option>
-                      </select>
-                    </td>
-                  </tr>
-                ))}
+                {(() => {
+                  const allPos = [...SCA_POSITIONS.upper, ...SCA_POSITIONS.lower];
+                  return allPos.map(pos => {
+                    const v = scaData.vehicles.find(ve => ve.pos === pos);
+                    const idx = scaData.vehicles.findIndex(ve => ve.pos === pos);
+                    if (v) {
+                      return (
+                        <tr key={pos} className="border-b border-border-light">
+                          <td className="px-1.5 py-1.5 font-semibold text-amber-700">{pos}</td>
+                          <td className="px-1.5 py-1.5"><input type="text" value={v.vin} onChange={e => setScaData(d => ({ ...d, vehicles: d.vehicles.map((ve, vi) => vi === idx ? { ...ve, vin: e.target.value } : ve) }))} className="border border-border rounded px-1 py-0.5 text-xs w-28" /></td>
+                          <td className="px-1.5 py-1.5"><input type="text" value={v.shipTo} onChange={e => setScaData(d => ({ ...d, vehicles: d.vehicles.map((ve, vi) => vi === idx ? { ...ve, shipTo: e.target.value } : ve) }))} className="border border-border rounded px-1 py-0.5 text-xs w-20" /></td>
+                          <td className="px-1.5 py-1.5"><input type="text" value={v.shipToName} onChange={e => setScaData(d => ({ ...d, vehicles: d.vehicles.map((ve, vi) => vi === idx ? { ...ve, shipToName: e.target.value } : ve) }))} className="border border-border rounded px-1 py-0.5 text-xs w-full" /></td>
+                          <td className="px-1.5 py-1.5"><input type="text" value={v.soldTo} onChange={e => setScaData(d => ({ ...d, vehicles: d.vehicles.map((ve, vi) => vi === idx ? { ...ve, soldTo: e.target.value } : ve) }))} className="border border-border rounded px-1 py-0.5 text-xs w-20" /></td>
+                          <td className="px-1.5 py-1.5"><input type="text" value={v.dealer || ''} onChange={e => setScaData(d => ({ ...d, vehicles: d.vehicles.map((ve, vi) => vi === idx ? { ...ve, dealer: e.target.value } : ve) }))} className="border border-border rounded px-1 py-0.5 text-xs w-full" /></td>
+                          <td className="px-1.5 py-1.5"><input type="text" value={v.calling || ''} onChange={e => setScaData(d => ({ ...d, vehicles: d.vehicles.map((ve, vi) => vi === idx ? { ...ve, calling: e.target.value } : ve) }))} placeholder="Calling" className="border border-border rounded px-1 py-0.5 text-xs w-20" /></td>
+                          <td className="px-1.5 py-1.5">
+                            <select className="border border-border rounded px-1 py-0.5 text-xs w-full"
+                              value={v.billingStatus || 'ไม่ใช่รถกลับ'}
+                              onChange={e => setScaData(d => ({ ...d, vehicles: d.vehicles.map((ve, vi) => vi === idx ? { ...ve, billingStatus: e.target.value } : ve) }))}>
+                              <option value="รถกลับ">รถกลับ</option>
+                              <option value="ไม่ใช่รถกลับ">ไม่ใช่รถกลับ</option>
+                              <option value="แลกเปลี่ยน">แลกเปลี่ยน</option>
+                              <option value="มือสอง">มือสอง</option>
+                            </select>
+                          </td>
+                        </tr>
+                      );
+                    }
+                    return (
+                      <tr key={pos} className="border-b border-border-light bg-gray-50/50">
+                        <td className="px-1.5 py-1.5 font-semibold text-gray-400">{pos}</td>
+                        <td colSpan={7} className="px-1.5 py-1.5 text-gray-400 text-xs italic">— Empty —</td>
+                      </tr>
+                    );
+                  });
+                })()}
               </tbody>
             </table>
           </div>
+          <div className="text-xs text-text-sec mt-1">Loaded: {scaData.vehicles.length} / 11 slots</div>
+
           {/* Add Row Button */}
           {scaData.vehicles.length < 11 && (
             <button
