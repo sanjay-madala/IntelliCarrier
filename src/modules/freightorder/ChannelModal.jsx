@@ -9,6 +9,7 @@ const productTypeMap = {
     { value: 'Chem', label: 'Chem — Chemical Transport' },
   ],
   SCA: [{ value: 'Car', label: 'Car — Car Carrier' }],
+  SCM: [{ value: 'TUG', label: 'TUG — Tug Service (Harbor/Offshore)' }],
   SPL: [{ value: 'Container', label: 'Container — Container Transport' }],
 };
 
@@ -32,6 +33,10 @@ const channelsByProduct = {
   'SCA-Car': {
     channels: ['excel', 'manual'],
     notes: '📌 Excel: Weekly or before job. Return trips: Manual (separate shipment).<br/>💡 <strong>Win No.</strong> can be updated later via Mobile app (QR/Barcode scan).',
+  },
+  'SCM-TUG': {
+    channels: ['manual'],
+    notes: '📌 SCM Tug Service: Manual entry for harbor/offshore tug assignments.',
   },
   'SPL-Container': {
     channels: ['manual'],
@@ -84,6 +89,7 @@ export default function ChannelModal({ onClose, onSelect }) {
                 <option value="">{t('uploadModal.selectCompany')}</option>
                 <option value="SCC">SCC — SC Carrier</option>
                 <option value="SCA">SCA — SC Auto</option>
+                <option value="SCM">SCM — SC Maritime</option>
                 <option value="SPL">SPL — Container Transport</option>
               </select>
             </div>
