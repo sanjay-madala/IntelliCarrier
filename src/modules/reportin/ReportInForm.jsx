@@ -7,6 +7,7 @@ import TugStagesTab from './TugStagesTab';
 import ExpenseTab from './ExpenseTab';
 import FuelTab from './FuelTab';
 import ParkingTab from './ParkingTab';
+import FuelAllocationTab from './FuelAllocationTab';
 import ReviewTab from './ReviewTab';
 
 // Shared cost state lifted to form level so ReviewTab can read actuals
@@ -21,7 +22,8 @@ const innerTabs = [
   { key: 'expenses',     icon: '💰', labelKey: 'reportIn.form.expenses' },
   { key: 'fuel',         icon: '⛽',        labelKey: 'reportIn.form.fuel' },
   { key: 'parking',      icon: '🅿️', labelKey: 'reportIn.form.parking' },
-  { key: 'reviewClose',  icon: '📊', labelKey: 'reportIn.form.reviewClose' },
+  { key: 'fuelAllocation', icon: '📊', labelKey: 'reportIn.form.fuelAllocation' },
+  { key: 'reviewClose',  icon: '✅', labelKey: 'reportIn.form.reviewClose' },
 ];
 
 export default function ReportInForm({ shipment, onBack }) {
@@ -211,6 +213,7 @@ export default function ReportInForm({ shipment, onBack }) {
         {activeTab === 'expenses' && <ExpenseTab shipment={shipment} onTotalChange={(total, receiptInfo) => setCosts(prev => ({ ...prev, expenses: total, ...(receiptInfo || {}) }))} allCosts={costs} />}
         {activeTab === 'fuel' && <FuelTab shipment={shipment} onTotalChange={(total) => setCosts(prev => ({ ...prev, fuel: total }))} />}
         {activeTab === 'parking' && <ParkingTab shipment={shipment} onTotalChange={(total) => setCosts(prev => ({ ...prev, parking: total }))} />}
+        {activeTab === 'fuelAllocation' && <FuelAllocationTab shipment={shipment} />}
         {activeTab === 'reviewClose' && <ReviewTab shipment={shipment} costs={costs} />}
       </div>
 
