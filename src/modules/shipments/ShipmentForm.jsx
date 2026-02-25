@@ -215,7 +215,16 @@ export default function ShipmentForm({ shipment, selectedFO, channel, onBack, is
       ...d,
       service: bomKey,
       salesBomItems: bomData
-        ? bomData.items.map((item, i) => ({ id: i + 1, ...item, tugBoat: '', wbs: '' }))
+        ? bomData.items.map((item, i) => ({
+            id: i + 1, ...item,
+            qty: 1, uom: 'HR', wbs: '', actualHours: '', billingHours: '',
+            status: '', startDate: '', startTime: '', endDate: '', endTime: '',
+            amount: '', price: '',
+            comCompany1: '', comCompany2: '', comPerson: '',
+            discount1: '', discount2: '',
+            start: '', standby1: '', working1: '', standby2: '', working2: '', standby3: '', working3: '', end: '',
+            itemText: '',
+          }))
         : [],
     }));
   };
@@ -1396,43 +1405,80 @@ export default function ShipmentForm({ shipment, selectedFO, channel, onBack, is
               </div>
             </div>
             <div className="overflow-x-auto border border-border-light rounded">
-              <table className="w-full text-xs">
+              <table className="w-full text-xs" style={{ minWidth: '1800px' }}>
                 <thead><tr className="bg-gray-50 border-b border-border">
-                  <th className="px-3 py-2 text-left w-8">#</th>
-                  <th className="px-3 py-2 text-left">Item</th>
-                  <th className="px-3 py-2 text-left">Description</th>
-                  <th className="px-3 py-2 text-left">Unit</th>
-                  <th className="px-3 py-2 text-left">Tug Boat</th>
-                  <th className="px-3 py-2 text-left">WBS</th>
-                  <th className="px-3 py-2 w-12"></th>
+                  <th className="px-2 py-2 text-left text-[10px] font-semibold text-text-sec">Item</th>
+                  <th className="px-2 py-2 text-left text-[10px] font-semibold text-text-sec">Mat.no.</th>
+                  <th className="px-2 py-2 text-left text-[10px] font-semibold text-text-sec">Mat.Desc</th>
+                  <th className="px-2 py-2 text-center text-[10px] font-semibold text-text-sec">Qty</th>
+                  <th className="px-2 py-2 text-left text-[10px] font-semibold text-text-sec">UOM</th>
+                  <th className="px-2 py-2 text-left text-[10px] font-semibold text-text-sec">WBS no.</th>
+                  <th className="px-2 py-2 text-right text-[10px] font-semibold text-text-sec">Actual Hrs</th>
+                  <th className="px-2 py-2 text-right text-[10px] font-semibold text-text-sec">Billing Hrs</th>
+                  <th className="px-2 py-2 text-left text-[10px] font-semibold text-text-sec">Status</th>
+                  <th className="px-2 py-2 text-left text-[10px] font-semibold text-text-sec">Start date</th>
+                  <th className="px-2 py-2 text-left text-[10px] font-semibold text-text-sec">Start time</th>
+                  <th className="px-2 py-2 text-left text-[10px] font-semibold text-text-sec">End date</th>
+                  <th className="px-2 py-2 text-left text-[10px] font-semibold text-text-sec">End time</th>
+                  <th className="px-2 py-2 text-right text-[10px] font-semibold text-text-sec">Amount</th>
+                  <th className="px-2 py-2 text-right text-[10px] font-semibold text-text-sec">Price</th>
+                  <th className="px-2 py-2 text-left text-[10px] font-semibold text-text-sec">Start</th>
+                  <th className="px-2 py-2 text-left text-[10px] font-semibold text-text-sec">Stand by</th>
+                  <th className="px-2 py-2 text-left text-[10px] font-semibold text-text-sec">Working</th>
+                  <th className="px-2 py-2 text-left text-[10px] font-semibold text-text-sec">Stand by</th>
+                  <th className="px-2 py-2 text-left text-[10px] font-semibold text-text-sec">Working</th>
+                  <th className="px-2 py-2 text-left text-[10px] font-semibold text-text-sec">Stand by</th>
+                  <th className="px-2 py-2 text-left text-[10px] font-semibold text-text-sec">Working</th>
+                  <th className="px-2 py-2 text-left text-[10px] font-semibold text-text-sec">End</th>
+                  <th className="px-2 py-2 text-left text-[10px] font-semibold text-text-sec">Item text</th>
+                  <th className="px-2 py-2 w-8"></th>
                 </tr></thead>
                 <tbody>
-                  {tugData.salesBomItems.map((bom, i) => (
+                  {tugData.salesBomItems.map((bom, i) => {
+                    const up = (field, val) => setTugData(d => ({ ...d, salesBomItems: d.salesBomItems.map((b, bi) => bi === i ? { ...b, [field]: val } : b) }));
+                    const inp = (field, w, ph, cls) => (
+                      <input type="text" value={bom[field] || ''} onChange={e => up(field, e.target.value)}
+                        placeholder={ph || '—'} className={`border border-border rounded px-1.5 py-1 text-xs ${w} ${cls || ''}`} />
+                    );
+                    return (
                     <tr key={bom.id} className="border-b border-border-light">
-                      <td className="px-3 py-2 text-center font-semibold">{i + 1}</td>
-                      <td className="px-3 py-2 font-mono font-semibold text-primary">{bom.item}</td>
-                      <td className="px-3 py-2">{bom.description}</td>
-                      <td className="px-3 py-2">{bom.unit}</td>
-                      <td className="px-3 py-2">
-                        <input type="text" value={bom.tugBoat} onChange={e => setTugData(d => ({ ...d, salesBomItems: d.salesBomItems.map((b, bi) => bi === i ? { ...b, tugBoat: e.target.value } : b) }))}
-                          placeholder="Not assigned" className="border border-border rounded px-2 py-1 text-xs w-28 text-orange-500" />
-                      </td>
-                      <td className="px-3 py-2">
-                        <input type="text" value={bom.wbs} onChange={e => setTugData(d => ({ ...d, salesBomItems: d.salesBomItems.map((b, bi) => bi === i ? { ...b, wbs: e.target.value } : b) }))}
-                          placeholder="—" className="border border-border rounded px-2 py-1 text-xs w-24" />
-                      </td>
-                      <td className="px-3 py-2">
+                      <td className="px-2 py-1.5 font-mono font-semibold text-text-sec">{bom.item}</td>
+                      <td className="px-2 py-1.5 font-mono font-semibold text-primary text-[11px]">{bom.component}</td>
+                      <td className="px-2 py-1.5 max-w-[160px] truncate" title={bom.description}>{bom.description}</td>
+                      <td className="px-2 py-1.5 text-center">{inp('qty', 'w-12 text-center', '1')}</td>
+                      <td className="px-2 py-1.5">{inp('uom', 'w-12', 'HR')}</td>
+                      <td className="px-2 py-1.5">{inp('wbs', 'w-24', '025.15...')}</td>
+                      <td className="px-2 py-1.5">{inp('actualHours', 'w-14 text-right', '0.00')}</td>
+                      <td className="px-2 py-1.5">{inp('billingHours', 'w-14 text-right', '0.00')}</td>
+                      <td className="px-2 py-1.5">{inp('status', 'w-16', 'Open')}</td>
+                      <td className="px-2 py-1.5">{inp('startDate', 'w-20', 'dd.mm.yyyy')}</td>
+                      <td className="px-2 py-1.5">{inp('startTime', 'w-16', 'hh:mm:ss')}</td>
+                      <td className="px-2 py-1.5">{inp('endDate', 'w-20', 'dd.mm.yyyy')}</td>
+                      <td className="px-2 py-1.5">{inp('endTime', 'w-16', 'hh:mm:ss')}</td>
+                      <td className="px-2 py-1.5">{inp('amount', 'w-16 text-right', '0.00')}</td>
+                      <td className="px-2 py-1.5">{inp('price', 'w-16 text-right', '0.00')}</td>
+                      <td className="px-2 py-1.5">{inp('start', 'w-14', ':00')}</td>
+                      <td className="px-2 py-1.5">{inp('standby1', 'w-14', ':00')}</td>
+                      <td className="px-2 py-1.5">{inp('working1', 'w-14', ':00')}</td>
+                      <td className="px-2 py-1.5">{inp('standby2', 'w-14', ':00')}</td>
+                      <td className="px-2 py-1.5">{inp('working2', 'w-14', ':00')}</td>
+                      <td className="px-2 py-1.5">{inp('standby3', 'w-14', ':00')}</td>
+                      <td className="px-2 py-1.5">{inp('working3', 'w-14', ':00')}</td>
+                      <td className="px-2 py-1.5">{inp('end', 'w-14', ':00')}</td>
+                      <td className="px-2 py-1.5">{inp('itemText', 'w-24', '')}</td>
+                      <td className="px-2 py-1.5">
                         {tugData.salesBomItems.length > 1 && (
                           <button onClick={() => setTugData(d => ({ ...d, salesBomItems: d.salesBomItems.filter((_, bi) => bi !== i) }))}
                             className="text-error hover:text-red-700 text-xs">&times;</button>
                         )}
                       </td>
                     </tr>
-                  ))}
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
-            <button onClick={() => setTugData(d => ({ ...d, salesBomItems: [...d.salesBomItems, { id: Date.now(), item: '', description: '', unit: 'Trip', tugBoat: '', wbs: '' }] }))}
+            <button onClick={() => setTugData(d => ({ ...d, salesBomItems: [...d.salesBomItems, { id: Date.now(), item: '', component: '', description: '', unit: 'Trip', qty: 1, uom: 'HR', wbs: '', actualHours: '', billingHours: '', status: '', startDate: '', startTime: '', endDate: '', endTime: '', amount: '', price: '', comCompany1: '', comCompany2: '', comPerson: '', discount1: '', discount2: '', start: '', standby1: '', working1: '', standby2: '', working2: '', standby3: '', working3: '', end: '', itemText: '' }] }))}
               className="mt-2 px-3 py-1 rounded border border-border text-table text-text-sec hover:bg-bg text-xs">
               + Add BOM Item
             </button>

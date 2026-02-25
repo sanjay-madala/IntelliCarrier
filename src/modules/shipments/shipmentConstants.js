@@ -1332,7 +1332,7 @@ export const SITE_TO_PREFIX = { BKK: 'SBKK', MTP: 'SMTP', SOF: 'SSOF', LCH: 'SMT
 export const getSalesBomOptions = (site) => {
   const sitePrefix = SITE_TO_PREFIX[site];
   const boms = SALES_BOM_DATA[sitePrefix] || {};
-  return Object.entries(boms).map(([key, val]) => ({ value: key, label: val.label }));
+  return Object.entries(boms).map(([key, val]) => ({ value: key, label: `${key} — ${val.label}` }));
 };
 
 // ==================== TUG REPORT-IN TIME STAGES ====================
