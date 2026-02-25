@@ -17,8 +17,8 @@ import {
   YARD_OPTIONS, NGV_QUALITY_STATIONS, SCA_TRANSPORT_FEE_OPTIONS, SCA_TRIP_PAY_OPTIONS,
   APPROVED_FOS, SCA_POSITIONS, SAMPLE_CAR_CARRIER_VEHICLES,
   TUG_AGENT_OPTIONS, TUG_SITE_OPTIONS, TUG_PORT_OPTIONS, TUG_VESSEL_OPTIONS,
-  TUG_JOB_TYPE_OPTIONS, TUG_SCOPE_OPTIONS, TUG_ACTIVITY_OPTIONS, TUG_SERVICE_OPTIONS,
-  SAMPLE_SALES_BOM_ITEMS,
+  TUG_JOB_TYPE_OPTIONS, TUG_SCOPE_OPTIONS, TUG_ACTIVITY_OPTIONS,
+  SALES_BOM_DATA, SITE_TO_PREFIX, getSalesBomOptions,
 } from './shipmentConstants';
 import { trucks as truckMaster } from '../../data/mockData';
 
@@ -189,9 +189,9 @@ export default function ShipmentForm({ shipment, selectedFO, channel, onBack, is
     grt: '', loa: '', draf: '',
     jobType: 'HI', scope: 'In-Bay',
     workDateTime: new Date().toISOString().slice(0, 16),
-    activityOperation: 'Berth', service: 'harbour-towage-inbound',
+    activityOperation: 'Berth', service: '',
     pilotMaster: '',
-    salesBomItems: SAMPLE_SALES_BOM_ITEMS.map((item, i) => ({ ...item, id: i + 1 })),
+    salesBomItems: [],
   });
 
   const handleVesselChange = (vesselName) => {
@@ -201,6 +201,22 @@ export default function ShipmentForm({ shipment, selectedFO, channel, onBack, is
       vessel: vesselName,
       grt: v ? String(v.grt) : d.grt,
       loa: v ? String(v.loa) : d.loa,
+    }));
+  };
+
+  const handleTugSiteChange = (site) => {
+    setTugData(d => ({ ...d, site, service: '', salesBomItems: [] }));
+  };
+
+  const handleBomChange = (bomKey) => {
+    const sitePrefix = SITE_TO_PREFIX[tugData.site];
+    const bomData = SALES_BOM_DATA[sitePrefix]?.[bomKey];
+    setTugData(d => ({
+      ...d,
+      service: bomKey,
+      salesBomItems: bomData
+        ? bomData.items.map((item, i) => ({ id: i + 1, ...item, tugBoat: '', wbs: '' }))
+        : [],
     }));
   };
 
@@ -1322,7 +1338,7 @@ export default function ShipmentForm({ shipment, selectedFO, channel, onBack, is
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3 mb-3">
             <FormField label={t('tug.form.agent') || 'Agent / Owner'} type="select" value={tugData.agent} onChange={v => setTugData(d => ({ ...d, agent: v }))} required
               options={TUG_AGENT_OPTIONS} placeholder="— Select Agent —" />
-            <FormField label={t('tug.form.site') || 'Site'} type="select" value={tugData.site} onChange={v => setTugData(d => ({ ...d, site: v }))} required
+            <FormField label={t('tug.form.site') || 'Site'} type="select" value={tugData.site} onChange={v => handleTugSiteChange(v)} required
               options={TUG_SITE_OPTIONS} />
           </div>
 
@@ -1362,16 +1378,23 @@ export default function ShipmentForm({ shipment, selectedFO, channel, onBack, is
               options={TUG_ACTIVITY_OPTIONS} />
           </div>
 
-          {/* Row 6: Service, Pilot/Master */}
+          {/* Row 6: Pilot/Master */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
-            <FormField label={t('tug.form.service') || 'Service'} type="select" value={tugData.service} onChange={v => setTugData(d => ({ ...d, service: v }))} required
-              options={TUG_SERVICE_OPTIONS} />
             <FormField label={t('tug.form.pilotMaster') || 'Pilot / Master'} value={tugData.pilotMaster} onChange={v => setTugData(d => ({ ...d, pilotMaster: v }))} placeholder="Free text" />
           </div>
 
-          {/* Sales BOM Items */}
+          {/* Sales BOM Selection & Items */}
           <div className="mt-4">
             <h4 className="text-table font-semibold text-teal-700 mb-2">Sales BOM Items — Tug Assignment</h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
+              <FormField label={t('tug.form.salesBomHeader') || 'Sales BOM Header'} type="select" value={tugData.service} onChange={v => handleBomChange(v)} required
+                options={getSalesBomOptions(tugData.site)} placeholder="— Select Sales BOM —" />
+              <div className="flex items-end text-xs text-text-muted pb-2">
+                {tugData.service && tugData.salesBomItems.length > 0 && (
+                  <span className="bg-teal-50 text-teal-700 px-2 py-1 rounded">{tugData.salesBomItems.length} item(s) loaded from BOM</span>
+                )}
+              </div>
+            </div>
             <div className="overflow-x-auto border border-border-light rounded">
               <table className="w-full text-xs">
                 <thead><tr className="bg-gray-50 border-b border-border">
