@@ -8,6 +8,7 @@ import ShipmentList from './modules/shipments/ShipmentList';
 import ReportInList from './modules/reportin/ReportInList';
 import CashAdvanceModule from './modules/cashadvance/CashAdvanceModule';
 import SettlementMain from './modules/settlement/SettlementMain';
+import FuelAllocationModule from './modules/fuelallocation/FuelAllocationModule';
 
 function ModuleRouter() {
   const { state } = useApp();
@@ -21,6 +22,8 @@ function ModuleRouter() {
       return <CashAdvanceModule />;
     case 'settlement':
       return <SettlementMain />;
+    case 'fuelAllocation':
+      return <FuelAllocationModule />;
     default:
       return <ShipmentList />;
   }

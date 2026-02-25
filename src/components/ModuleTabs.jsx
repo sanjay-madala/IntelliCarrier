@@ -6,6 +6,7 @@ const tabs = [
   { key: 'reportin',      icon: '📥', labelKey: 'modules.reportIn' },
   { key: 'cashadvance',   icon: '💵', labelKey: 'modules.cashAdvance' },
   { key: 'settlement',    icon: '💰', labelKey: 'modules.settlement' },
+  { key: 'fuelAllocation', icon: '⛽', labelKey: 'modules.fuelAllocation' },
 ];
 
 export default function ModuleTabs() {
@@ -19,7 +20,8 @@ export default function ModuleTabs() {
     ).length || 0;
     const stl = state.awaitingRows?.filter(r => r.status === 'awaiting').length || 0;
     const ca = state.shipments?.filter(s => s.status === 'DISPATCHED' || s.status === 'COMPLETED').length || 0;
-    return { shipments: shp, reportin: ri, cashadvance: ca, settlement: stl };
+    const fa = state.shipments?.filter(s => s.riStatus === 'completed' || s.riStatus === 'in_progress').length || 0;
+    return { shipments: shp, reportin: ri, cashadvance: ca, settlement: stl, fuelAllocation: fa };
   };
 
   const counts = getCounts();

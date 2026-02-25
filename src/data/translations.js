@@ -11,6 +11,7 @@ export const translations = {
       reportIn: 'Report-In',
       cashAdvance: 'Cash Advance',
       settlement: 'Settlement',
+      fuelAllocation: 'Fuel Allocation',
     },
     freightOrders: {
       pageTitle: 'Freight Order Management',
@@ -1275,6 +1276,7 @@ export const translations = {
       reportIn: 'รายงานเข้า',
       cashAdvance: 'เงินสดล่วงหน้า',
       settlement: 'การชำระเงิน',
+      fuelAllocation: 'จัดสรรน้ำมัน',
     },
     freightOrders: {
       pageTitle: 'จัดการคำสั่งขนส่ง',
