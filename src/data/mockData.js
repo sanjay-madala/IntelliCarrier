@@ -543,6 +543,39 @@ export const awaitingRows = [
   { id: 'AW007', shipmentNo: 'SHP-2026-009', stage: 'S2', product: 'NGV', soldTo: '1000004', soldToName: 'บจก.สยาม เอ็นจีวี', shipTo: '2000004', shipToName: 'สถานี NGV ขอนแก่น', soShipment: 'SHP-2026-009', item: 'NGV-002', material: 'NGV Compressed', transportRate: 2.80, distance: 480, gasQty: 2000, stationCost: 1500, monthly: 42000, totalCost: 8500, tripCount: 15, totalDist: 7200, distCategory: '>200km', rateInput: 2.80, docDate: '2026-02-14', billingDate: '2026-02-14', status: 'awaiting' },
   { id: 'AW008', shipmentNo: 'SHP-2026-002', stage: 'S1', product: 'NGV', soldTo: '1000007', soldToName: 'บจก.เอ็นพีที เอ็นจีวี', shipTo: '2000008', shipToName: 'สถานี NGV สระบุรี', soShipment: 'SHP-2026-002', item: 'NGV-003', material: 'NGV Compressed', transportRate: 2.50, distance: 150, gasQty: 4200, stationCost: 1000, monthly: 30000, totalCost: 11500, tripCount: 25, totalDist: 3750, distCategory: '≤200km', rateInput: 2.50, docDate: '2026-02-15', billingDate: '2026-02-15', status: 'awaiting' },
   { id: 'AW009', shipmentNo: 'SHP-2026-002', stage: 'S2', product: 'NGV', soldTo: '1000003', soldToName: 'บจก.ปตท. จำหน่ายก๊าซ', shipTo: '2000009', shipToName: 'สถานี NGV วังน้อย', soShipment: 'SHP-2026-002', item: 'NGV-004', material: 'NGV Compressed', transportRate: 2.30, distance: 230, gasQty: 3500, stationCost: 1100, monthly: 34500, totalCost: 9150, tripCount: 20, totalDist: 4600, distCategory: '>200km', rateInput: 2.30, docDate: '2026-02-15', billingDate: '2026-02-15', status: 'awaiting' },
+  // TUG awaiting rows (header+item structure)
+  {
+    id: 'AW010', shipmentNo: 'SHP-2026-013', product: 'TUG', orderId: '2102221261', headerItem: '10',
+    matNo: 'TUG-SVC-001', matDescription: 'Tug Berthing Service', vessel: 'MV OCEAN STAR', grt: 8500, loa: 145, draf: 9.2,
+    docDate: '2026-02-18', docTime: '08:00', activityOperation: 'Berthing', port: 'Map Ta Phut', site: 'Map Ta Phut',
+    salesNo: 'SA-2026-TUG-001', soldTo: '3000001', soldToName: 'Thai Maritime Services Co., Ltd.', message: '',
+    status: 'awaiting',
+    items: [
+      { itemNo: '10', matNo: 'TUG-SVC-001', matDescription: 'Tug Boat - Berthing Assist', qty: 2, uom: 'Job', wbsNo: 'WBS-TUG-001', actualHour: 2.5, billingHour: 3.0, itemStatus: 'Open', startDate: '2026-02-18', startTime: '08:00', endDate: '2026-02-18', endTime: '10:30', amount: 340000, pricePerUnit: 40, comCompanyPct: 5, comCompanyUnit: 2, comPersonPct: 3, comPersonUnit: 1.2, discountPct: 5, discountUnit: 2, stageStart: '08:00', stageStandBy1: '08:15', stageWorking1: '08:30', stageStandBy2: '', stageWorking2: '', stageStandBy3: '', stageWorking3: '', stageEnd: '10:30', itemText: 'Berthing assist for MV OCEAN STAR', remark: '' },
+      { itemNo: '20', matNo: 'TUG-SVC-002', matDescription: 'Tug Boat - Stand-by Service', qty: 1, uom: 'Hr', wbsNo: 'WBS-TUG-001', actualHour: 1.0, billingHour: 1.0, itemStatus: 'Open', startDate: '2026-02-18', startTime: '10:30', endDate: '2026-02-18', endTime: '11:30', amount: 40000, pricePerUnit: 40, comCompanyPct: 5, comCompanyUnit: 2, comPersonPct: 3, comPersonUnit: 1.2, discountPct: 0, discountUnit: 0, stageStart: '10:30', stageStandBy1: '10:30', stageWorking1: '', stageStandBy2: '', stageWorking2: '', stageStandBy3: '', stageWorking3: '', stageEnd: '11:30', itemText: 'Stand-by during cargo ops', remark: '' },
+    ],
+  },
+  {
+    id: 'AW011', shipmentNo: 'SHP-2026-013', product: 'TUG', orderId: '2102221262', headerItem: '10',
+    matNo: 'TUG-SVC-003', matDescription: 'Tug Unberthing Service', vessel: 'MV OCEAN STAR', grt: 8500, loa: 145, draf: 9.2,
+    docDate: '2026-02-19', docTime: '14:00', activityOperation: 'Unberthing', port: 'Map Ta Phut', site: 'Map Ta Phut',
+    salesNo: 'SA-2026-TUG-001', soldTo: '3000001', soldToName: 'Thai Maritime Services Co., Ltd.', message: '',
+    status: 'awaiting',
+    items: [
+      { itemNo: '10', matNo: 'TUG-SVC-003', matDescription: 'Tug Boat - Unberthing Assist', qty: 2, uom: 'Job', wbsNo: 'WBS-TUG-002', actualHour: 2.0, billingHour: 2.5, itemStatus: 'Open', startDate: '2026-02-19', startTime: '14:00', endDate: '2026-02-19', endTime: '16:00', amount: 340000, pricePerUnit: 40, comCompanyPct: 5, comCompanyUnit: 2, comPersonPct: 3, comPersonUnit: 1.2, discountPct: 5, discountUnit: 2, stageStart: '14:00', stageStandBy1: '14:10', stageWorking1: '14:20', stageStandBy2: '', stageWorking2: '', stageStandBy3: '', stageWorking3: '', stageEnd: '16:00', itemText: 'Unberthing assist for MV OCEAN STAR', remark: '' },
+    ],
+  },
+  {
+    id: 'AW012', shipmentNo: 'SHP-2026-014', product: 'TUG', orderId: '2102221270', headerItem: '10',
+    matNo: 'TUG-SVC-004', matDescription: 'Tug Shifting Service', vessel: 'MV THAI FORTUNE', grt: 22000, loa: 180, draf: 11.5,
+    docDate: '2026-02-20', docTime: '06:00', activityOperation: 'Shifting', port: 'Map Ta Phut', site: 'Map Ta Phut',
+    salesNo: 'SA-2026-TUG-002', soldTo: '3000002', soldToName: 'Siam Shipping Agency Co., Ltd.', message: '',
+    status: 'awaiting',
+    items: [
+      { itemNo: '10', matNo: 'TUG-SVC-004', matDescription: 'Tug Boat - Shifting Assist', qty: 3, uom: 'Job', wbsNo: 'WBS-TUG-003', actualHour: 3.0, billingHour: 3.5, itemStatus: 'Open', startDate: '2026-02-20', startTime: '06:00', endDate: '2026-02-20', endTime: '09:00', amount: 880000, pricePerUnit: 40, comCompanyPct: 4, comCompanyUnit: 1.6, comPersonPct: 2, comPersonUnit: 0.8, discountPct: 3, discountUnit: 1.2, stageStart: '06:00', stageStandBy1: '06:15', stageWorking1: '06:30', stageStandBy2: '07:30', stageWorking2: '07:45', stageStandBy3: '', stageWorking3: '', stageEnd: '09:00', itemText: 'Shifting from Berth 1 to Berth 5', remark: 'Large vessel - 3 tugs required' },
+      { itemNo: '20', matNo: 'TUG-SVC-005', matDescription: 'Tug Boat - Pilot Transfer', qty: 1, uom: 'Trip', wbsNo: 'WBS-TUG-003', actualHour: 0.5, billingHour: 0.5, itemStatus: 'Open', startDate: '2026-02-20', startTime: '05:30', endDate: '2026-02-20', endTime: '06:00', amount: 40000, pricePerUnit: 40, comCompanyPct: 4, comCompanyUnit: 1.6, comPersonPct: 2, comPersonUnit: 0.8, discountPct: 0, discountUnit: 0, stageStart: '05:30', stageStandBy1: '', stageWorking1: '05:35', stageStandBy2: '', stageWorking2: '', stageStandBy3: '', stageWorking3: '', stageEnd: '06:00', itemText: 'Pilot transfer to vessel', remark: '' },
+    ],
+  },
 ];
 
 // Settlement reports
@@ -612,6 +645,79 @@ export const salesOrders = [
       { shipmentNo: 'SHP-2026-009', soldTo: '1000004', shipToName: 'สถานี NGV ขอนแก่น', custDoc: '-', qty: 2000, soNo: '21060-002' },
     ],
   },
+];
+
+// TUG settlement header columns
+export const tugHeaderCols = [
+  { key: 'no',                label: 'No.',                  labelTh: 'ลำดับ',                show: true },
+  { key: 'orderId',           label: 'Order ID',             labelTh: 'เลขที่คำสั่ง',          show: true },
+  { key: 'headerItem',        label: 'Item',                 labelTh: 'รายการ',               show: true },
+  { key: 'matNo',             label: 'Mat.no.',              labelTh: 'รหัสวัสดุ',             show: true },
+  { key: 'matDescription',    label: 'Mat.Description',      labelTh: 'รายละเอียดวัสดุ',       show: true },
+  { key: 'grt',               label: 'GRT',                  labelTh: 'GRT',                  show: true },
+  { key: 'loa',               label: 'LOA (FT)',             labelTh: 'LOA (ฟุต)',             show: true },
+  { key: 'draf',              label: 'Draf (M)',             labelTh: 'กินน้ำลึก (ม.)',        show: true },
+  { key: 'docDate',           label: 'Date',                 labelTh: 'วันที่',                show: true },
+  { key: 'docTime',           label: 'Time',                 labelTh: 'เวลา',                 show: true },
+  { key: 'activityOperation', label: 'Activity Operation',   labelTh: 'กิจกรรมปฏิบัติการ',     show: true },
+  { key: 'port',              label: 'Port',                 labelTh: 'ท่าเรือ',               show: true },
+  { key: 'salesNo',           label: 'Sales no.',            labelTh: 'เลขที่ขาย',            show: true },
+  { key: 'message',           label: 'Message',              labelTh: 'ข้อความ',              show: false },
+];
+
+// TUG settlement item columns
+export const tugItemCols = [
+  { key: 'no',                label: 'No.',                  labelTh: 'ลำดับ',                show: true },
+  { key: 'orderId',           label: 'Order ID',             labelTh: 'เลขที่คำสั่ง',          show: true },
+  { key: 'itemNo',            label: 'Item',                 labelTh: 'รายการ',               show: true },
+  { key: 'matNo',             label: 'Mat.no.',              labelTh: 'รหัสวัสดุ',             show: true },
+  { key: 'matDescription',    label: 'Mat.Description',      labelTh: 'รายละเอียดวัสดุ',       show: true },
+  { key: 'qty',               label: 'Qty',                  labelTh: 'จำนวน',                show: true },
+  { key: 'uom',               label: 'UOM',                  labelTh: 'หน่วย',                show: true },
+  { key: 'wbsNo',             label: 'WBS no.',              labelTh: 'WBS no.',              show: true },
+  { key: 'actualHour',        label: 'Actual Hour',          labelTh: 'ชม.จริง',              show: true },
+  { key: 'billingHour',       label: 'Billing Hour',         labelTh: 'ชม.เรียกเก็บ',         show: true },
+  { key: 'itemStatus',        label: 'Status',               labelTh: 'สถานะ',                show: true },
+  { key: 'startDate',         label: 'Start Date',           labelTh: 'วันที่เริ่ม',           show: true },
+  { key: 'startTime',         label: 'Start Time',           labelTh: 'เวลาเริ่ม',            show: true },
+  { key: 'endDate',           label: 'End Date',             labelTh: 'วันที่สิ้นสุด',         show: true },
+  { key: 'endTime',           label: 'End Time',             labelTh: 'เวลาสิ้นสุด',          show: true },
+  { key: 'amount',            label: 'Amount',               labelTh: 'จำนวนเงิน',            show: true },
+  { key: 'pricePerUnit',      label: 'Price/Unit',           labelTh: 'ราคาต่อหน่วย',         show: true },
+  { key: 'comCompanyPct',     label: 'Com.Company%',         labelTh: 'คอม.บริษัท%',          show: true },
+  { key: 'comCompanyUnit',    label: 'Com.Company/Unit',     labelTh: 'คอม.บริษัท/หน่วย',     show: false },
+  { key: 'comPersonPct',      label: 'Com.Person%',          labelTh: 'คอม.บุคคล%',           show: true },
+  { key: 'comPersonUnit',     label: 'Com.Person/Unit',      labelTh: 'คอม.บุคคล/หน่วย',      show: false },
+  { key: 'discountPct',       label: 'Discount%',            labelTh: 'ส่วนลด%',              show: true },
+  { key: 'discountUnit',      label: 'Discount/Unit',        labelTh: 'ส่วนลด/หน่วย',         show: false },
+  { key: 'itemText',          label: 'Item Text',            labelTh: 'รายละเอียด',           show: false },
+  { key: 'remark',            label: 'Remark',               labelTh: 'หมายเหตุ',             show: false },
+  { key: 'soNo',              label: 'SO No.',               labelTh: 'เลขที่ SO',            show: true },
+];
+
+// TUG pricing lookup tables
+export const tugPricingZtable1 = [
+  { site: 'Map Ta Phut', jobType: 'Berthing',   sizeFrom: 0,    sizeTo: 5000,  pricePerUnit: 45, minPrice: 90000 },
+  { site: 'Map Ta Phut', jobType: 'Berthing',   sizeFrom: 5001, sizeTo: 15000, pricePerUnit: 40, minPrice: 120000 },
+  { site: 'Map Ta Phut', jobType: 'Berthing',   sizeFrom: 15001,sizeTo: 50000, pricePerUnit: 35, minPrice: 180000 },
+  { site: 'Map Ta Phut', jobType: 'Unberthing', sizeFrom: 0,    sizeTo: 5000,  pricePerUnit: 45, minPrice: 90000 },
+  { site: 'Map Ta Phut', jobType: 'Unberthing', sizeFrom: 5001, sizeTo: 15000, pricePerUnit: 40, minPrice: 120000 },
+  { site: 'Map Ta Phut', jobType: 'Unberthing', sizeFrom: 15001,sizeTo: 50000, pricePerUnit: 35, minPrice: 180000 },
+  { site: 'Map Ta Phut', jobType: 'Shifting',   sizeFrom: 0,    sizeTo: 5000,  pricePerUnit: 50, minPrice: 100000 },
+  { site: 'Map Ta Phut', jobType: 'Shifting',   sizeFrom: 5001, sizeTo: 15000, pricePerUnit: 45, minPrice: 135000 },
+  { site: 'Map Ta Phut', jobType: 'Shifting',   sizeFrom: 15001,sizeTo: 50000, pricePerUnit: 40, minPrice: 200000 },
+  { site: 'Sattahip',    jobType: 'Berthing',   sizeFrom: 0,    sizeTo: 5000,  pricePerUnit: 50, minPrice: 100000 },
+  { site: 'Sattahip',    jobType: 'Berthing',   sizeFrom: 5001, sizeTo: 15000, pricePerUnit: 45, minPrice: 135000 },
+  { site: 'Sattahip',    jobType: 'Unberthing', sizeFrom: 0,    sizeTo: 5000,  pricePerUnit: 50, minPrice: 100000 },
+  { site: 'Sattahip',    jobType: 'Unberthing', sizeFrom: 5001, sizeTo: 15000, pricePerUnit: 45, minPrice: 135000 },
+];
+
+export const tugPricingZtable2 = [
+  { site: 'Map Ta Phut', jobType: 'Berthing',   sizeFrom: 0,    sizeTo: 50000, route: 'Domestic',      discountPct: 5,  validFrom: '2026-01-01', validTo: '2026-12-31' },
+  { site: 'Map Ta Phut', jobType: 'Unberthing', sizeFrom: 0,    sizeTo: 50000, route: 'Domestic',      discountPct: 5,  validFrom: '2026-01-01', validTo: '2026-12-31' },
+  { site: 'Map Ta Phut', jobType: 'Shifting',   sizeFrom: 0,    sizeTo: 50000, route: 'Domestic',      discountPct: 3,  validFrom: '2026-01-01', validTo: '2026-12-31' },
+  { site: 'Sattahip',    jobType: 'Berthing',   sizeFrom: 0,    sizeTo: 50000, route: 'International', discountPct: 0,  validFrom: '2026-01-01', validTo: '2026-12-31' },
+  { site: 'Sattahip',    jobType: 'Unberthing', sizeFrom: 0,    sizeTo: 50000, route: 'International', discountPct: 0,  validFrom: '2026-01-01', validTo: '2026-12-31' },
 ];
 
 // Backward-compatibility alias

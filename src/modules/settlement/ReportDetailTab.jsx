@@ -2,14 +2,18 @@ import { useState } from 'react';
 import { useApp } from '../../contexts/AppContext';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { formatCurrency, generateId } from '../../utils/helpers';
-import { lpgCols, ngvCols } from '../../data/mockData';
+import { lpgCols, ngvCols, tugHeaderCols, tugItemCols, tugPricingZtable1, tugPricingZtable2 } from '../../data/mockData';
 import ColumnSettingsModal from './ColumnSettingsModal';
 
 export default function ReportDetailTab({ report, onBack }) {
   const { language, t } = useLanguage();
   const { dispatch } = useApp();
   const [showColSettings, setShowColSettings] = useState(false);
-  const [columns, setColumns] = useState(report?.product === 'LPG' ? [...lpgCols] : [...ngvCols]);
+  const [columns, setColumns] = useState(
+    report?.product === 'TUG' ? [...tugHeaderCols] :
+    report?.product === 'LPG' ? [...lpgCols] : [...ngvCols]
+  );
+  const [expandedHeaders, setExpandedHeaders] = useState(new Set());
 
   if (!report) {
     return (
@@ -26,7 +30,44 @@ export default function ReportDetailTab({ report, onBack }) {
     const items = report.items || [];
     const allSOs = [];
 
-    if (report.product === 'LPG') {
+    if (report.product === 'TUG') {
+      // TUG: Group by salesNo
+      const groups = {};
+      items.forEach(item => {
+        const key = item.salesNo || 'unknown';
+        if (!groups[key]) groups[key] = [];
+        groups[key].push(item);
+      });
+
+      Object.entries(groups).forEach(([salesNo, groupItems]) => {
+        const soNo = `TUG-SO-${String(Date.now()).slice(-3)}-${allSOs.length + 1}`;
+        const tugTotal = groupItems.reduce((s, r) => {
+          const itemsTotal = (r.items || []).reduce((is, it) => is + (it.amount || 0), 0);
+          return s + itemsTotal;
+        }, 0);
+        allSOs.push({
+          id: generateId('SO'),
+          soNo,
+          reportNo: report.reportNo,
+          product: 'TUG',
+          soldTo: groupItems[0].soldTo || '',
+          soldToName: groupItems[0].soldToName || '',
+          soType: `Sales: ${salesNo}`,
+          total: tugTotal,
+          status: 'pending',
+          created: new Date().toISOString().split('T')[0],
+          numRows: groupItems.length,
+          rows: groupItems.map(item => ({
+            shipmentNo: item.shipmentNo || item.orderId,
+            soldTo: item.soldTo,
+            shipToName: item.vessel || item.soldToName,
+            custDoc: item.orderId || '-',
+            qty: (item.items || []).length,
+            soNo,
+          })),
+        });
+      });
+    } else if (report.product === 'LPG') {
       // LPG: Group by soldTo + cannotUnload (canGas vs cannotGas)
       const groups = {};
       items.forEach(item => {
@@ -145,8 +186,8 @@ export default function ReportDetailTab({ report, onBack }) {
               {isPosted ? '✅ ' + t('common.status.soPosted') : '⏳ ' + t('common.status.pendingSO')}
             </span>
           </h2>
-          <span className={`badge-pill ${report.product === 'LPG' ? 'bg-red-500/20 text-white' : 'bg-green-300/20 text-white'}`}>
-            {report.product === 'LPG' ? '🔥' : '🟢'} {report.product}
+          <span className={`badge-pill ${report.product === 'LPG' ? 'bg-red-500/20 text-white' : report.product === 'TUG' ? 'bg-teal-300/20 text-white' : 'bg-green-300/20 text-white'}`}>
+            {report.product === 'LPG' ? '🔥' : report.product === 'TUG' ? '🚢' : '🟢'} {report.product}
           </span>
         </div>
         <div className="grid grid-cols-2 md:grid-cols-5 gap-3 text-xs">
@@ -178,7 +219,13 @@ export default function ReportDetailTab({ report, onBack }) {
       {/* SO Split Rules */}
       <div className="rounded-lg px-4 py-3 text-xs border border-yellow-300" style={{ background: '#fffde7' }}>
         <h4 className="font-bold text-yellow-900 mb-1">{'📐'} {t('settlement.reportDetail.soSplitRules')}</h4>
-        {report.product === 'LPG' ? (
+        {report.product === 'TUG' ? (
+          <ul className="text-yellow-800 space-y-0.5 list-disc list-inside">
+            <li>{t('settlement.splitRules.tug.rule1') || 'Group by Sales No. — each Sales No. becomes one SO'}</li>
+            <li>{t('settlement.splitRules.tug.rule2') || 'Amount = GRT × Price/Unit (min price applies)'}</li>
+            <li>{t('settlement.splitRules.tug.rule3') || 'Discount from Ztable2 applies based on site/job type/date'}</li>
+          </ul>
+        ) : report.product === 'LPG' ? (
           <ul className="text-yellow-800 space-y-0.5 list-disc list-inside">
             <li>{t('settlement.splitRules.lpg.rule1')}</li>
             <li>{t('settlement.splitRules.lpg.rule2')}</li>
@@ -234,6 +281,137 @@ export default function ReportDetailTab({ report, onBack }) {
 
         {/* Dynamic Column Table */}
         <div className="overflow-x-auto">
+          {report.product === 'TUG' ? (
+            /* TUG Two-Level Expandable Table */
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="bg-gray-50 border-b border-border">
+                  <th className="px-2 py-2 w-8"></th>
+                  {visibleCols.map(col => (
+                    <th key={col.key} className="text-left px-3 py-2 font-medium text-text-sec whitespace-nowrap">
+                      {language === 'th' ? col.labelTh : col.label}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {report.items?.map((header, i) => {
+                  const hasSO = !!header.soNo;
+                  const isExpanded = expandedHeaders.has(header.id || header.orderId);
+                  const toggleExpand = () => {
+                    setExpandedHeaders(prev => {
+                      const next = new Set(prev);
+                      const key = header.id || header.orderId;
+                      if (next.has(key)) next.delete(key); else next.add(key);
+                      return next;
+                    });
+                  };
+                  const headerTotal = (header.items || []).reduce((s, it) => s + (it.amount || 0), 0);
+
+                  return (
+                    <>{/* Header Row */}
+                    <tr
+                      key={`h-${i}`}
+                      onClick={toggleExpand}
+                      className={`border-b cursor-pointer transition-colors font-semibold
+                        ${hasSO
+                          ? 'border-l-4 border-l-green-500 bg-green-50/30 hover:bg-green-50/60'
+                          : 'border-l-4 border-l-teal-500 bg-teal-50/30 hover:bg-teal-50/60'
+                        } border-b-border-light`}
+                    >
+                      <td className="px-2 py-2 text-center">
+                        <span className="text-xs">{isExpanded ? '▼' : '▶'}</span>
+                      </td>
+                      {visibleCols.map(col => (
+                        <td key={col.key} className="px-3 py-2 whitespace-nowrap">
+                          {col.key === 'no' ? i + 1 :
+                           col.key === 'grt' ? (header.grt?.toLocaleString() ?? '—') :
+                           col.key === 'activityOperation' ? (
+                             <span className="badge-pill bg-teal-50 text-teal-700">{header.activityOperation}</span>
+                           ) :
+                           (header[col.key] ?? '—')}
+                        </td>
+                      ))}
+                    </tr>
+                    {/* Expanded Item Rows */}
+                    {isExpanded && (header.items || []).map((item, j) => {
+                      const itemVisibleCols = tugItemCols.filter(c => c.show);
+                      return (
+                        <tr
+                          key={`i-${i}-${j}`}
+                          className="border-b border-b-border-light bg-white hover:bg-gray-50/50"
+                        >
+                          <td className="px-2 py-1.5"></td>
+                          <td colSpan={visibleCols.length} className="px-3 py-1.5">
+                            <div className="flex flex-wrap gap-x-6 gap-y-1 text-xs">
+                              <span><span className="text-text-sec">Item:</span> {item.itemNo}</span>
+                              <span><span className="text-text-sec">Mat:</span> {item.matNo}</span>
+                              <span className="font-medium">{item.matDescription}</span>
+                              <span><span className="text-text-sec">Qty:</span> {item.qty} {item.uom}</span>
+                              <span><span className="text-text-sec">WBS:</span> {item.wbsNo}</span>
+                              <span><span className="text-text-sec">{language === 'th' ? 'ชม.จริง' : 'Actual Hr'}:</span> {item.actualHour}</span>
+                              <span><span className="text-text-sec">{language === 'th' ? 'ชม.เรียกเก็บ' : 'Billing Hr'}:</span> {item.billingHour}</span>
+                              <span>
+                                <span className="text-text-sec">Status:</span>{' '}
+                                <span className={`badge-pill ${item.itemStatus === 'Open' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>
+                                  {item.itemStatus}
+                                </span>
+                              </span>
+                              <span><span className="text-text-sec">{language === 'th' ? 'เริ่ม' : 'Start'}:</span> {item.startDate} {item.startTime}</span>
+                              <span><span className="text-text-sec">{language === 'th' ? 'สิ้นสุด' : 'End'}:</span> {item.endDate} {item.endTime}</span>
+                              <span className="font-bold text-teal-700">
+                                <span className="text-text-sec">{language === 'th' ? 'จำนวนเงิน' : 'Amount'}:</span> {formatCurrency(item.amount)}
+                              </span>
+                              <span><span className="text-text-sec">Price/Unit:</span> {item.pricePerUnit}</span>
+                              {item.comCompanyPct > 0 && (
+                                <span><span className="text-text-sec">{language === 'th' ? 'คอม.บริษัท' : 'Com.Co'}:</span> {item.comCompanyPct}%</span>
+                              )}
+                              {item.comPersonPct > 0 && (
+                                <span><span className="text-text-sec">{language === 'th' ? 'คอม.บุคคล' : 'Com.Person'}:</span> {item.comPersonPct}%</span>
+                              )}
+                              {item.discountPct > 0 && (
+                                <span><span className="text-text-sec">{language === 'th' ? 'ส่วนลด' : 'Discount'}:</span> {item.discountPct}%</span>
+                              )}
+                              {item.remark && (
+                                <span className="text-text-muted italic">{item.remark}</span>
+                              )}
+                            </div>
+                            {/* Time stages mini-timeline */}
+                            {(item.stageStart || item.stageEnd) && (
+                              <div className="flex items-center gap-2 mt-1 text-[10px] text-text-sec">
+                                <span className="font-medium">{language === 'th' ? 'ขั้นตอนเวลา' : 'Time Stages'}:</span>
+                                {item.stageStart && <span className="px-1.5 py-0.5 rounded bg-green-100 text-green-700">Start {item.stageStart}</span>}
+                                {item.stageStandBy1 && <span className="px-1.5 py-0.5 rounded bg-yellow-100 text-yellow-700">SB1 {item.stageStandBy1}</span>}
+                                {item.stageWorking1 && <span className="px-1.5 py-0.5 rounded bg-blue-100 text-blue-700">W1 {item.stageWorking1}</span>}
+                                {item.stageStandBy2 && <span className="px-1.5 py-0.5 rounded bg-yellow-100 text-yellow-700">SB2 {item.stageStandBy2}</span>}
+                                {item.stageWorking2 && <span className="px-1.5 py-0.5 rounded bg-blue-100 text-blue-700">W2 {item.stageWorking2}</span>}
+                                {item.stageStandBy3 && <span className="px-1.5 py-0.5 rounded bg-yellow-100 text-yellow-700">SB3 {item.stageStandBy3}</span>}
+                                {item.stageWorking3 && <span className="px-1.5 py-0.5 rounded bg-blue-100 text-blue-700">W3 {item.stageWorking3}</span>}
+                                {item.stageEnd && <span className="px-1.5 py-0.5 rounded bg-red-100 text-red-700">End {item.stageEnd}</span>}
+                              </div>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                    {/* Header total row when expanded */}
+                    {isExpanded && (
+                      <tr key={`t-${i}`} className="border-b border-b-border-light bg-teal-50/50">
+                        <td className="px-2 py-1.5"></td>
+                        <td colSpan={visibleCols.length} className="px-3 py-1.5 text-right">
+                          <span className="text-xs font-semibold text-teal-700">
+                            {language === 'th' ? 'รวมคำสั่ง' : 'Order Total'}: {formatCurrency(headerTotal)}
+                            {' '}({(header.items || []).length} {language === 'th' ? 'รายการ' : 'items'})
+                          </span>
+                        </td>
+                      </tr>
+                    )}
+                    </>
+                  );
+                })}
+              </tbody>
+            </table>
+          ) : (
           <table className="w-full text-xs">
             <thead>
               <tr className="bg-gray-50 border-b border-border">
@@ -279,6 +457,7 @@ export default function ReportDetailTab({ report, onBack }) {
               })}
             </tbody>
           </table>
+          )}
         </div>
 
         {/* Summary */}

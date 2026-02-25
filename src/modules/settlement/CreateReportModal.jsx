@@ -66,7 +66,9 @@ export default function CreateReportModal({ open, onClose, onReportCreated }) {
     }
 
     const reportId = generateId('RPT');
-    const total = selectedRows.reduce((s, r) => s + (r.billingQty || r.totalCost || 0), 0);
+    const total = product === 'TUG'
+      ? selectedRows.reduce((s, r) => s + (r.items || []).reduce((is, it) => is + (it.amount || 0), 0), 0)
+      : selectedRows.reduce((s, r) => s + (r.billingQty || r.totalCost || 0), 0);
 
     dispatch({
       type: 'ADD_SETTLEMENT_REPORT',
@@ -186,6 +188,7 @@ export default function CreateReportModal({ open, onClose, onReportCreated }) {
                 <option value="CHEM">Chemical</option>
                 <option value="CONTAINER">Container</option>
                 <option value="SCA">SCA</option>
+                <option value="TUG">TUG</option>
               </select>
             </div>
             {/* Route */}
@@ -271,14 +274,29 @@ export default function CreateReportModal({ open, onClose, onReportCreated }) {
                           className="rounded"
                         />
                       </th>
-                      <th className="text-left px-3 py-2 font-medium text-text-sec">{t('settlement.table.shipment')}</th>
-                      <th className="text-left px-3 py-2 font-medium text-text-sec">{t('settlement.table.stage')}</th>
-                      <th className="text-left px-3 py-2 font-medium text-text-sec">{t('settlement.table.shipTo')}</th>
-                      <th className="text-left px-3 py-2 font-medium text-text-sec">{t('settlement.createModal.shipToName')}</th>
-                      <th className="text-left px-3 py-2 font-medium text-text-sec">{t('shipments.table.product')}</th>
-                      <th className="text-left px-3 py-2 font-medium text-text-sec">{t('settlement.createModal.volume')}</th>
-                      <th className="text-left px-3 py-2 font-medium text-text-sec">{t('settlement.table.billingDist')}</th>
-                      <th className="text-left px-3 py-2 font-medium text-text-sec">{t('settlement.table.gasUnload')}</th>
+                      {filterProduct === 'TUG' ? (
+                        <>
+                          <th className="text-left px-3 py-2 font-medium text-text-sec">{t('settlement.tug.orderId')}</th>
+                          <th className="text-left px-3 py-2 font-medium text-text-sec">{t('settlement.tug.vessel')}</th>
+                          <th className="text-left px-3 py-2 font-medium text-text-sec">GRT</th>
+                          <th className="text-left px-3 py-2 font-medium text-text-sec">LOA</th>
+                          <th className="text-left px-3 py-2 font-medium text-text-sec">{t('settlement.tug.port')}</th>
+                          <th className="text-left px-3 py-2 font-medium text-text-sec">{t('settlement.tug.activity')}</th>
+                          <th className="text-left px-3 py-2 font-medium text-text-sec">{t('cashAdvance.table.date')}</th>
+                          <th className="text-left px-3 py-2 font-medium text-text-sec">{t('settlement.tug.items')}</th>
+                        </>
+                      ) : (
+                        <>
+                          <th className="text-left px-3 py-2 font-medium text-text-sec">{t('settlement.table.shipment')}</th>
+                          <th className="text-left px-3 py-2 font-medium text-text-sec">{t('settlement.table.stage')}</th>
+                          <th className="text-left px-3 py-2 font-medium text-text-sec">{t('settlement.table.shipTo')}</th>
+                          <th className="text-left px-3 py-2 font-medium text-text-sec">{t('settlement.createModal.shipToName')}</th>
+                          <th className="text-left px-3 py-2 font-medium text-text-sec">{t('shipments.table.product')}</th>
+                          <th className="text-left px-3 py-2 font-medium text-text-sec">{t('settlement.createModal.volume')}</th>
+                          <th className="text-left px-3 py-2 font-medium text-text-sec">{t('settlement.table.billingDist')}</th>
+                          <th className="text-left px-3 py-2 font-medium text-text-sec">{t('settlement.table.gasUnload')}</th>
+                        </>
+                      )}
                     </tr>
                   </thead>
                   <tbody>
@@ -292,24 +310,41 @@ export default function CreateReportModal({ open, onClose, onReportCreated }) {
                         <td className="px-3 py-2">
                           <input type="checkbox" checked={selected.has(row.id)} readOnly className="rounded" />
                         </td>
-                        <td className="px-3 py-2 font-mono text-primary">{row.shipmentNo}</td>
-                        <td className="px-3 py-2">{row.stage || '-'}</td>
-                        <td className="px-3 py-2">{row.shipTo}</td>
-                        <td className="px-3 py-2">{row.shipToName}</td>
-                        <td className="px-3 py-2">
-                          <span className={`badge-pill ${row.product === 'LPG' ? 'badge-lpg' : 'badge-ngv'}`}>
-                            {row.product}
-                          </span>
-                        </td>
-                        <td className="px-3 py-2 text-right">{(row.ticketQty || row.gasQty)?.toLocaleString()}</td>
-                        <td className="px-3 py-2 text-right">{(row.billingDist || row.distance)} km</td>
-                        <td className="px-3 py-2">
-                          {row.product === 'LPG' ? (
-                            row.cannotUnload
-                              ? <span className="badge-pill bg-red-100 text-red-700">{'❌'}</span>
-                              : <span className="badge-pill bg-green-100 text-green-700">{'✅'}</span>
-                          ) : '-'}
-                        </td>
+                        {row.product === 'TUG' ? (
+                          <>
+                            <td className="px-3 py-2 font-mono text-primary">{row.orderId}</td>
+                            <td className="px-3 py-2">{row.vessel}</td>
+                            <td className="px-3 py-2 text-right">{row.grt?.toLocaleString()}</td>
+                            <td className="px-3 py-2 text-right">{row.loa}</td>
+                            <td className="px-3 py-2">{row.port}</td>
+                            <td className="px-3 py-2">
+                              <span className="badge-pill bg-teal-50 text-teal-700">{row.activityOperation}</span>
+                            </td>
+                            <td className="px-3 py-2">{row.docDate}</td>
+                            <td className="px-3 py-2 text-center">{row.items?.length || 0}</td>
+                          </>
+                        ) : (
+                          <>
+                            <td className="px-3 py-2 font-mono text-primary">{row.shipmentNo}</td>
+                            <td className="px-3 py-2">{row.stage || '-'}</td>
+                            <td className="px-3 py-2">{row.shipTo}</td>
+                            <td className="px-3 py-2">{row.shipToName}</td>
+                            <td className="px-3 py-2">
+                              <span className={`badge-pill ${row.product === 'LPG' ? 'badge-lpg' : 'badge-ngv'}`}>
+                                {row.product}
+                              </span>
+                            </td>
+                            <td className="px-3 py-2 text-right">{(row.ticketQty || row.gasQty)?.toLocaleString()}</td>
+                            <td className="px-3 py-2 text-right">{(row.billingDist || row.distance)} km</td>
+                            <td className="px-3 py-2">
+                              {row.product === 'LPG' ? (
+                                row.cannotUnload
+                                  ? <span className="badge-pill bg-red-100 text-red-700">{'❌'}</span>
+                                  : <span className="badge-pill bg-green-100 text-green-700">{'✅'}</span>
+                              ) : '-'}
+                            </td>
+                          </>
+                        )}
                       </tr>
                     ))}
                     {awaiting.length === 0 && (
@@ -325,17 +360,14 @@ export default function CreateReportModal({ open, onClose, onReportCreated }) {
                       <tr className="bg-blue-50 font-semibold text-xs border-t-2 border-primary">
                         <td className="px-3 py-2"></td>
                         <td className="px-3 py-2 text-primary">{selected.size} selected</td>
-                        <td className="px-3 py-2"></td>
-                        <td className="px-3 py-2"></td>
-                        <td className="px-3 py-2"></td>
-                        <td className="px-3 py-2"></td>
-                        <td className="px-3 py-2 text-right text-primary">
-                          {awaiting.filter(r => selected.has(r.id)).reduce((s, r) => s + (r.ticketQty || r.gasQty || 0), 0).toLocaleString()}
-                        </td>
-                        <td className="px-3 py-2 text-right text-primary">
-                          {awaiting.filter(r => selected.has(r.id)).reduce((s, r) => s + (r.billingDist || r.distance || 0), 0)} km
-                        </td>
-                        <td className="px-3 py-2"></td>
+                        <td className="px-3 py-2" colSpan={filterProduct === 'TUG' ? 7 : 6}></td>
+                        {filterProduct !== 'TUG' && (
+                          <>
+                            <td className="px-3 py-2 text-right text-primary">
+                              {awaiting.filter(r => selected.has(r.id)).reduce((s, r) => s + (r.ticketQty || r.gasQty || 0), 0).toLocaleString()}
+                            </td>
+                          </>
+                        )}
                       </tr>
                     </tfoot>
                   )}

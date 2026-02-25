@@ -42,6 +42,7 @@ export default function SettlementMain() {
     awaiting: state.awaitingSettlement.filter(a => a.status === 'awaiting').length,
     lpgAwaiting: state.awaitingSettlement.filter(a => a.product === 'LPG' && a.status === 'awaiting').length,
     ngvAwaiting: state.awaitingSettlement.filter(a => a.product === 'NGV' && a.status === 'awaiting').length,
+    tugAwaiting: state.awaitingSettlement.filter(a => a.product === 'TUG' && a.status === 'awaiting').length,
     reportsCreated: state.settlementReports.length,
     soPosted: state.salesOrders.filter(so => so.status === 'posted').length,
   }), [state.awaitingSettlement, state.settlementReports, state.salesOrders]);
@@ -142,6 +143,7 @@ export default function SettlementMain() {
           { icon: '📦', labelKey: 'settlement.kpi.awaiting', count: kpis.awaiting,      borderColor: '#ff9800', iconBg: '#fff3e0', tab: 'awaiting' },
           { icon: '🔵', labelKey: 'settlement.kpi.lpgAwaiting', count: kpis.lpgAwaiting,   borderColor: '#2196f3', iconBg: '#e3f2fd', tab: 'awaiting' },
           { icon: '🟢', labelKey: 'settlement.kpi.ngvAwaiting', count: kpis.ngvAwaiting,   borderColor: '#4caf50', iconBg: '#e8f5e9', tab: 'awaiting' },
+          { icon: '🚢', labelKey: 'settlement.kpi.tugAwaiting', count: kpis.tugAwaiting,   borderColor: '#0d9488', iconBg: '#f0fdfa', tab: 'awaiting' },
           { icon: '📋', labelKey: 'settlement.kpi.reportsCreated', count: kpis.reportsCreated, borderColor: '#9c27b0', iconBg: '#f3e5f5', tab: 'reports' },
           { icon: '✅', labelKey: 'settlement.kpi.soPosted', count: kpis.soPosted,       borderColor: '#4caf50', iconBg: '#e8f5e9', tab: 'salesOrders' },
         ].map((kpi) => (

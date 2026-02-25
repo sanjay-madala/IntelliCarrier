@@ -59,6 +59,7 @@ export default function AwaitingTab({ onReportCreated }) {
             <option value="">All Products</option>
             <option value="LPG">LPG</option>
             <option value="NGV">NGV</option>
+            <option value="TUG">TUG</option>
           </select>
           <span className="text-[10px] text-text-sec ml-auto">{filtered.length} rows</span>
         </div>
@@ -69,19 +70,36 @@ export default function AwaitingTab({ onReportCreated }) {
             <thead>
               <tr className="bg-gray-50 border-b border-border">
                 <th className="text-left px-3 py-2 font-medium text-text-sec whitespace-nowrap">{t('settlement.table.shipment')}</th>
-                <th className="text-left px-3 py-2 font-medium text-text-sec whitespace-nowrap">{t('settlement.table.stage')}</th>
                 <th className="text-left px-3 py-2 font-medium text-text-sec whitespace-nowrap">{t('shipments.table.product')}</th>
-                <th className="text-left px-3 py-2 font-medium text-text-sec whitespace-nowrap">{t('settlement.table.soldTo')}</th>
-                <th className="text-left px-3 py-2 font-medium text-text-sec whitespace-nowrap">{t('settlement.table.shipTo')}</th>
-                <th className="text-left px-3 py-2 font-medium text-text-sec whitespace-nowrap">{t('settlement.table.customerDoc')}</th>
-                <th className="text-left px-3 py-2 font-medium text-text-sec whitespace-nowrap">{t('settlement.table.ticketQty')}</th>
-                <th className="text-left px-3 py-2 font-medium text-text-sec whitespace-nowrap">{t('settlement.table.billingDist')}</th>
-                <th className="text-left px-3 py-2 font-medium text-text-sec whitespace-nowrap">{t('settlement.table.gasUnload')}</th>
+                {filterProduct === 'TUG' ? (
+                  <>
+                    <th className="text-left px-3 py-2 font-medium text-text-sec whitespace-nowrap">{t('settlement.tug.orderId')}</th>
+                    <th className="text-left px-3 py-2 font-medium text-text-sec whitespace-nowrap">{t('settlement.tug.vessel')}</th>
+                    <th className="text-left px-3 py-2 font-medium text-text-sec whitespace-nowrap">GRT</th>
+                    <th className="text-left px-3 py-2 font-medium text-text-sec whitespace-nowrap">{t('settlement.tug.activity')}</th>
+                    <th className="text-left px-3 py-2 font-medium text-text-sec whitespace-nowrap">{t('settlement.tug.port')}</th>
+                    <th className="text-left px-3 py-2 font-medium text-text-sec whitespace-nowrap">{t('settlement.tug.salesNo')}</th>
+                    <th className="text-left px-3 py-2 font-medium text-text-sec whitespace-nowrap">{t('settlement.tug.items')}</th>
+                  </>
+                ) : (
+                  <>
+                    <th className="text-left px-3 py-2 font-medium text-text-sec whitespace-nowrap">{t('settlement.table.stage')}</th>
+                    <th className="text-left px-3 py-2 font-medium text-text-sec whitespace-nowrap">{t('settlement.table.soldTo')}</th>
+                    <th className="text-left px-3 py-2 font-medium text-text-sec whitespace-nowrap">{t('settlement.table.shipTo')}</th>
+                    <th className="text-left px-3 py-2 font-medium text-text-sec whitespace-nowrap">{t('settlement.table.customerDoc')}</th>
+                    <th className="text-left px-3 py-2 font-medium text-text-sec whitespace-nowrap">{t('settlement.table.ticketQty')}</th>
+                    <th className="text-left px-3 py-2 font-medium text-text-sec whitespace-nowrap">{t('settlement.table.billingDist')}</th>
+                    <th className="text-left px-3 py-2 font-medium text-text-sec whitespace-nowrap">{t('settlement.table.gasUnload')}</th>
+                  </>
+                )}
                 <th className="text-left px-3 py-2 font-medium text-text-sec whitespace-nowrap">{t('cashAdvance.table.date')}</th>
               </tr>
             </thead>
             <tbody>
-              {filtered.map((row) => (
+              {filtered.map((row) => {
+                const productBadge = row.product === 'LPG' ? 'badge-lpg' : row.product === 'NGV' ? 'badge-ngv' : 'bg-teal-50 text-teal-700';
+                const productIcon = row.product === 'LPG' ? '🔥' : row.product === 'NGV' ? '🟢' : '🚢';
+                return (
                 <tr key={row.id} className="border-b border-border-light border-l-4 border-l-orange-400 hover:bg-orange-50/30 transition-colors">
                   <td className="px-3 py-2 whitespace-nowrap font-mono text-primary">
                     <button
@@ -93,42 +111,64 @@ export default function AwaitingTab({ onReportCreated }) {
                       {row.shipmentNo}
                     </button>
                   </td>
-                  <td className="px-3 py-2 whitespace-nowrap">{row.stage || '-'}</td>
                   <td className="px-3 py-2 whitespace-nowrap">
-                    <span className={`badge-pill ${row.product === 'LPG' ? 'badge-lpg' : 'badge-ngv'}`}>
-                      {row.product === 'LPG' ? '🔥' : '🟢'} {row.product}
+                    <span className={`badge-pill ${productBadge}`}>
+                      {productIcon} {row.product}
                     </span>
                   </td>
-                  <td className="px-3 py-2 whitespace-nowrap">
-                    <div className="text-xs font-medium">{row.soldToName}</div>
-                    <div className="text-[10px] text-text-sec">{row.soldTo}</div>
-                  </td>
-                  <td className="px-3 py-2 whitespace-nowrap">
-                    <div className="text-xs font-medium">{row.shipToName}</div>
-                    <div className="text-[10px] text-text-sec">{row.shipTo}</div>
-                  </td>
-                  <td className="px-3 py-2 whitespace-nowrap">{row.custDoc || '-'}</td>
-                  <td className="px-3 py-2 whitespace-nowrap text-right">
-                    {(row.ticketQty || row.gasQty)?.toLocaleString() || '-'}
-                  </td>
-                  <td className="px-3 py-2 whitespace-nowrap text-right">
-                    {(row.billingDist || row.distance) ? `${row.billingDist || row.distance} km` : '-'}
-                  </td>
-                  <td className="px-3 py-2 whitespace-nowrap">
-                    {row.product === 'LPG' ? (
-                      row.cannotUnload
-                        ? <span className="badge-pill bg-red-100 text-red-700">{'❌'}{t('settlement.gasUnload.cannot')}</span>
-                        : <span className="badge-pill bg-green-100 text-green-700">{'✅'}{t('settlement.gasUnload.can')}</span>
-                    ) : (
-                      <span className="text-text-sec">-</span>
-                    )}
-                  </td>
+                  {row.product === 'TUG' ? (
+                    <>
+                      <td className="px-3 py-2 whitespace-nowrap font-mono text-xs">{row.orderId}</td>
+                      <td className="px-3 py-2 whitespace-nowrap">
+                        <div className="text-xs font-medium">{row.vessel}</div>
+                        <div className="text-[10px] text-text-sec">LOA: {row.loa} ft | Draf: {row.draf} m</div>
+                      </td>
+                      <td className="px-3 py-2 whitespace-nowrap text-right font-semibold">{row.grt?.toLocaleString()}</td>
+                      <td className="px-3 py-2 whitespace-nowrap">
+                        <span className="badge-pill bg-teal-50 text-teal-700">{row.activityOperation}</span>
+                      </td>
+                      <td className="px-3 py-2 whitespace-nowrap">{row.port}</td>
+                      <td className="px-3 py-2 whitespace-nowrap font-mono text-xs">{row.salesNo || '-'}</td>
+                      <td className="px-3 py-2 whitespace-nowrap text-center">
+                        <span className="badge-pill bg-blue-50 text-blue-700">{row.items?.length || 0}</span>
+                      </td>
+                    </>
+                  ) : (
+                    <>
+                      <td className="px-3 py-2 whitespace-nowrap">{row.stage || '-'}</td>
+                      <td className="px-3 py-2 whitespace-nowrap">
+                        <div className="text-xs font-medium">{row.soldToName}</div>
+                        <div className="text-[10px] text-text-sec">{row.soldTo}</div>
+                      </td>
+                      <td className="px-3 py-2 whitespace-nowrap">
+                        <div className="text-xs font-medium">{row.shipToName}</div>
+                        <div className="text-[10px] text-text-sec">{row.shipTo}</div>
+                      </td>
+                      <td className="px-3 py-2 whitespace-nowrap">{row.custDoc || '-'}</td>
+                      <td className="px-3 py-2 whitespace-nowrap text-right">
+                        {(row.ticketQty || row.gasQty)?.toLocaleString() || '-'}
+                      </td>
+                      <td className="px-3 py-2 whitespace-nowrap text-right">
+                        {(row.billingDist || row.distance) ? `${row.billingDist || row.distance} km` : '-'}
+                      </td>
+                      <td className="px-3 py-2 whitespace-nowrap">
+                        {row.product === 'LPG' ? (
+                          row.cannotUnload
+                            ? <span className="badge-pill bg-red-100 text-red-700">{'❌'}{t('settlement.gasUnload.cannot')}</span>
+                            : <span className="badge-pill bg-green-100 text-green-700">{'✅'}{t('settlement.gasUnload.can')}</span>
+                        ) : (
+                          <span className="text-text-sec">-</span>
+                        )}
+                      </td>
+                    </>
+                  )}
                   <td className="px-3 py-2 whitespace-nowrap">{row.docDate || '-'}</td>
                 </tr>
-              ))}
+                );
+              })}
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={10} className="text-center py-10 text-text-muted text-xs">
+                  <td colSpan={11} className="text-center py-10 text-text-muted text-xs">
                     No shipments awaiting settlement
                   </td>
                 </tr>
