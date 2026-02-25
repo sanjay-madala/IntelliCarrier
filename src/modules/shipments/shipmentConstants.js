@@ -8,6 +8,7 @@ export const PRODUCT_CONFIG = {
   NGV:       { icon: '🟢', badge: 'bg-green-50 text-green-700',   label: 'NGV',           shipType: '0601', unit: 'm³', truckClass: 'ngv-truck',   zlsde: 'ZLSDE006' },
   CONTAINER: { icon: '📦', badge: 'bg-red-50 text-red-700',       label: 'Container',     shipType: '0606', unit: 'TEU', truckClass: 'container-truck', zlsde: 'ZLSDE015' },
   SCA:       { icon: '🚗', badge: 'bg-amber-50 text-amber-700',   label: 'Car Carrier',   shipType: '1400', unit: 'คัน', truckClass: 'sca-truck', zlsde: 'ZLSDE012' },
+  TUG:       { icon: '🚢', badge: 'bg-teal-50 text-teal-700',    label: 'Tug Service',   shipType: '0201', unit: 'Job', truckClass: 'tug-boat',  zlsde: 'ZLSDE020' },
 };
 
 export function pCfg(code) {
@@ -18,6 +19,8 @@ export function pCfg(code) {
 export const BU_OPTIONS = [
   { value: 'SCC', label: 'SCC — SC Carrier' },
   { value: 'SCA', label: 'SCA — SC Alliance' },
+  { value: 'SCM', label: 'SCM — SC Maritime' },
+  { value: 'NPM', label: 'NPM — National Port Management' },
 ];
 
 // ==================== PRODUCT TYPE OPTIONS ====================
@@ -28,6 +31,7 @@ export const PRODUCT_TYPE_OPTIONS = [
   { value: 'NGV',       label: '🟢 NGV' },
   { value: 'CONTAINER', label: '📦 Container' },
   { value: 'SCA',       label: '🚗 Car Carrier (SCA)' },
+  { value: 'TUG',       label: '🚢 Tug Service (SCM)' },
 ];
 
 // ==================== SITE OPTIONS (from master_O1) ====================
@@ -515,6 +519,7 @@ export const SAMPLE_SHIPMENTS = [
   { id: 'SHP-2026-010', status: 'COMPLETED', product: 'CONTAINER', route: '010003', routeName: 'LCB-ท่าเรือ NPM', truck: '70-3310', trailer: '70-CH02', vehicleNo: 'VH-703310', truckType: 'Container Chassis 40ft', driver1: 'EMP010', driver1Name: 'สุรเดช ขนส่ง', fos: ['FO-2026-0015'], created: '03.02.2026', totalQty: '3 x 40ft GP', bu: 'SCC', site: '060N' },
   { id: 'SHP-2026-011', status: 'OPEN', product: 'SCA', route: '040101', routeName: 'LPK-Toyota บ้านโพธิ์-LPK', truck: '72-8800', trailer: '72-CC01', vehicleNo: 'VH-728800', truckType: 'Car Carrier 8-unit', driver1: 'EMP011', driver1Name: 'ชัยวัฒน์ รถยนต์', fos: ['FO-2026-0016'], created: '05.02.2026', totalQty: '8 คัน', bu: 'SCA', site: '060N' },
   { id: 'SHP-2026-012', status: 'DISPATCHED', product: 'SCA', route: '040205', routeName: 'LPK-Isuzu สมุทรปราการ-LPK', truck: '72-8810', trailer: '72-CC02', vehicleNo: 'VH-728810', truckType: 'Car Carrier 6-unit', driver1: 'EMP012', driver1Name: 'เอกชัย ส่งรถ', fos: ['FO-2026-0017'], created: '04.02.2026', totalQty: '6 คัน', bu: 'SCA', site: '060N' },
+  { id: 'SHP-2026-013', status: 'DISPATCHED', product: 'TUG', route: '', routeName: 'BKK-TUG Harbor Service', truck: '', trailer: '', vehicleNo: 'TUG-001', truckType: 'Tug Boat', driver1: 'EMP001', driver1Name: 'สมชาย ใจดี', fos: [], created: '05.02.2026', totalQty: '1 Job', bu: 'SCM', site: 'BKK' },
 ];
 
 // ==================== FLEET/TRUCK DATA ====================
@@ -608,3 +613,103 @@ export const MASTER_O3 = {
 export function lookupMasterO3(site, route) {
   return MASTER_O3[`${site}|${route}`] || null;
 }
+
+// ==================== TUG SERVICE OPTIONS (SCM) ====================
+export const TUG_AGENT_OPTIONS = [
+  { value: 'thai-maritime', label: 'Thai Maritime Co., Ltd.' },
+  { value: 'gulf-nav', label: 'Gulf Navigation Ltd.' },
+  { value: 'ocean-tow', label: 'Ocean Towage Co., Ltd.' },
+  { value: 'bangkok-tug', label: 'Bangkok Tug Service Co., Ltd.' },
+];
+
+export const TUG_SITE_OPTIONS = [
+  { value: 'BKK', label: 'BKK' },
+  { value: 'MTP', label: 'MTP' },
+  { value: 'LCH', label: 'LCH' },
+];
+
+export const TUG_PORT_OPTIONS = [
+  { value: 'BKK-TUG', label: 'BKK-TUG — BANGKOK - BKK TUG' },
+  { value: 'BKK-BAR', label: 'BKK-BAR — BANGKOK - BAR' },
+  { value: 'MTP-TUG', label: 'MTP-TUG — MAP TA PHUT - TUG' },
+  { value: 'LCH-TUG', label: 'LCH-TUG — LAEM CHABANG - TUG' },
+];
+
+export const TUG_VESSEL_OPTIONS = [
+  { value: 'MV GULF PIONEER', label: 'MV GULF PIONEER', grt: 6300, loa: 98.4 },
+  { value: 'MV THAI STAR', label: 'MV THAI STAR', grt: 4500, loa: 85.2 },
+  { value: 'MV OCEAN GRACE', label: 'MV OCEAN GRACE', grt: 8200, loa: 120.5 },
+  { value: 'MV BANGKOK PRIDE', label: 'MV BANGKOK PRIDE', grt: 5100, loa: 92.0 },
+];
+
+export const TUG_JOB_TYPE_OPTIONS = [
+  { value: 'HI', label: 'Harbor Serv. Inside' },
+  { value: 'HO', label: 'Harbor Serv. Outside' },
+  { value: 'OF', label: 'Offshore Serv.' },
+];
+
+export const TUG_SCOPE_OPTIONS = [
+  { value: 'In-Bay', label: 'In-Bay' },
+  { value: 'Out-Bay', label: 'Out-Bay' },
+  { value: 'River', label: 'River' },
+  { value: 'Offshore', label: 'Offshore' },
+];
+
+export const TUG_ACTIVITY_OPTIONS = [
+  { value: 'Berth', label: 'Berth' },
+  { value: 'Unberth', label: 'Unberth' },
+  { value: 'Shifting', label: 'Shifting' },
+  { value: 'Escorting', label: 'Escorting' },
+  { value: 'Standby', label: 'Standby' },
+];
+
+export const TUG_SERVICE_OPTIONS = [
+  { value: 'harbour-towage-inbound', label: 'Harbour Towage - Inbound' },
+  { value: 'harbour-towage-outbound', label: 'Harbour Towage - Outbound' },
+  { value: 'shifting', label: 'Shifting' },
+  { value: 'standby', label: 'Standby Charge' },
+  { value: 'escorting', label: 'Escorting' },
+];
+
+// Sample Sales BOM items
+export const SAMPLE_SALES_BOM_ITEMS = [
+  { item: '7SHITUGBOAT00005', description: 'Tug Boat Service #5', unit: 'Trip', tugBoat: '', wbs: '' },
+  { item: '7SHISTANDBY00003', description: 'Standby Charge', unit: 'Hour', tugBoat: '', wbs: '' },
+];
+
+// ==================== TUG REPORT-IN TIME STAGES ====================
+export const TUG_TIME_STAGES = [
+  { key: 'start', label: 'Start', required: true },
+  { key: 'standby1', label: 'Stand by #1', required: false },
+  { key: 'workPeriod1', label: 'Work Period #1', required: false },
+  { key: 'standby2', label: 'Stand by #2', required: false },
+  { key: 'workPeriod2', label: 'Work Period #2', required: false },
+  { key: 'standby3', label: 'Stand by #3', required: false },
+  { key: 'workPeriod3', label: 'Work Period #3', required: false },
+  { key: 'last', label: 'Last', required: true },
+];
+
+// ==================== NPM EIR FORM OPTIONS ====================
+export const NPM_EIR_EVENT_OPTIONS = [
+  { value: 'checkin', label: 'เช็คอินเท่านั้น' },
+  { value: 'checkout', label: 'เช็คเอ้าท์เท่านั้น' },
+  { value: 'both', label: 'เช็คอิน + เช็คเอ้าท์' },
+];
+
+export const NPM_CUSTOMER_TYPE_OPTIONS = [
+  { value: 'IM', label: 'IM - Import' },
+  { value: 'EX', label: 'EX - Export' },
+  { value: 'DM', label: 'DM - Domestic' },
+  { value: 'TR', label: 'TR - Transit' },
+];
+
+export const NPM_FCL_STATUS_OPTIONS = [
+  { value: 'FCL', label: 'FCL' },
+  { value: 'LCL', label: 'LCL' },
+  { value: 'Empty', label: 'Empty' },
+];
+
+export const NPM_STUFFING_OPTIONS = [
+  { value: 'CY', label: 'CY' },
+  { value: 'CFS', label: 'CFS' },
+];

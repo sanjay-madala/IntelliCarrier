@@ -3,6 +3,7 @@ import { useLanguage } from '../../contexts/LanguageContext';
 import { useApp } from '../../contexts/AppContext';
 import { ProductBadge, StatusBadge } from '../../components/common/Badge';
 import StageEntry from './StageEntry';
+import TugStagesTab from './TugStagesTab';
 import ExpenseTab from './ExpenseTab';
 import FuelTab from './FuelTab';
 import ParkingTab from './ParkingTab';
@@ -202,7 +203,11 @@ export default function ReportInForm({ shipment, onBack }) {
             setVehicleData={setVehicleData}
           />
         )}
-        {activeTab === 'stages' && <StageEntry shipment={shipment} />}
+        {activeTab === 'stages' && (
+          shipment.product === 'TUG'
+            ? <TugStagesTab shipment={shipment} />
+            : <StageEntry shipment={shipment} />
+        )}
         {activeTab === 'expenses' && <ExpenseTab shipment={shipment} onTotalChange={(total, receiptInfo) => setCosts(prev => ({ ...prev, expenses: total, ...(receiptInfo || {}) }))} allCosts={costs} />}
         {activeTab === 'fuel' && <FuelTab shipment={shipment} onTotalChange={(total) => setCosts(prev => ({ ...prev, fuel: total }))} />}
         {activeTab === 'parking' && <ParkingTab shipment={shipment} onTotalChange={(total) => setCosts(prev => ({ ...prev, parking: total }))} />}

@@ -10,11 +10,15 @@ import TruckSearchModal from './TruckSearchModal';
 import FleetSuggestModal from './FleetSuggestModal';
 import EmployeeSearchModal from './EmployeeSearchModal';
 import StageSwapModal from './StageSwapModal';
+import NpmEirForm from './NpmEirForm';
 import {
   pCfg, BU_OPTIONS, PRODUCT_TYPE_OPTIONS, SITE_OPTIONS, PRODUCT_SUBTYPE_OPTIONS,
   SHIPMENT_TYPE_OPTIONS, SHIPPING_TYPE_OPTIONS, ROUTE_OPTIONS, CONNECTION_POINTS, ROUTE_STAGES, lookupMasterO3,
   YARD_OPTIONS, NGV_QUALITY_STATIONS, SCA_TRANSPORT_FEE_OPTIONS, SCA_TRIP_PAY_OPTIONS,
   APPROVED_FOS, SCA_POSITIONS, SAMPLE_CAR_CARRIER_VEHICLES,
+  TUG_AGENT_OPTIONS, TUG_SITE_OPTIONS, TUG_PORT_OPTIONS, TUG_VESSEL_OPTIONS,
+  TUG_JOB_TYPE_OPTIONS, TUG_SCOPE_OPTIONS, TUG_ACTIVITY_OPTIONS, TUG_SERVICE_OPTIONS,
+  SAMPLE_SALES_BOM_ITEMS,
 } from './shipmentConstants';
 import { trucks as truckMaster } from '../../data/mockData';
 
@@ -178,6 +182,27 @@ export default function ShipmentForm({ shipment, selectedFO, channel, onBack, is
     positions: SCA_POSITIONS,
     vehicles: SAMPLE_CAR_CARRIER_VEHICLES,
   });
+
+  // Tug Service (SCM) specific state
+  const [tugData, setTugData] = useState({
+    agent: '', site: 'BKK', vessel: '', port: 'BKK-TUG',
+    grt: '', loa: '', draf: '',
+    jobType: 'HI', scope: 'In-Bay',
+    workDateTime: new Date().toISOString().slice(0, 16),
+    activityOperation: 'Berth', service: 'harbour-towage-inbound',
+    pilotMaster: '',
+    salesBomItems: SAMPLE_SALES_BOM_ITEMS.map((item, i) => ({ ...item, id: i + 1 })),
+  });
+
+  const handleVesselChange = (vesselName) => {
+    const v = TUG_VESSEL_OPTIONS.find(o => o.value === vesselName);
+    setTugData(d => ({
+      ...d,
+      vessel: vesselName,
+      grt: v ? String(v.grt) : d.grt,
+      loa: v ? String(v.loa) : d.loa,
+    }));
+  };
 
   // ==================== MODALS ====================
   const [showTruckSearch, setShowTruckSearch] = useState(false);
@@ -1151,7 +1176,19 @@ export default function ShipmentForm({ shipment, selectedFO, channel, onBack, is
             </table>
           </div>
           <button onClick={() => setContainerData(d => ({ ...d, containers: [...d.containers, { no: '', size: '40ft HC', type: 'FCL', containerType: 'Dry', seal: '', weight: 0, tare: 0, vgm: 0, temp: '', status: 'Empty' }] }))} className="mt-2 px-3 py-1 rounded border border-border text-table text-text-sec hover:bg-bg text-xs">{t('shipmentForm.addContainer')}</button>
+          <button onClick={() => {
+            if (containerData.containers.length > 1) {
+              setContainerData(d => ({ ...d, containers: d.containers.slice(0, -1) }));
+            }
+          }} className="mt-2 ml-2 px-3 py-1 rounded border border-red-300 text-red-600 text-xs hover:bg-red-50">
+            {t('npm.bookingLines.delete') || 'Delete Last'}
+          </button>
         </CollapsibleSection>
+      )}
+
+      {/* --- NPM EIR FORM (shown for NPM shipment types) --- */}
+      {currentProduct === 'CONTAINER' && (form.shipmentType === '0800' || form.shipmentType === '0801') && (
+        <NpmEirForm />
       )}
 
       {/* --- CAR CARRIER DATA --- */}
@@ -1271,6 +1308,112 @@ export default function ShipmentForm({ shipment, selectedFO, channel, onBack, is
             </button>
           )}
 
+        </CollapsibleSection>
+      )}
+
+      {/* --- TUG SERVICE DATA (SCM) --- */}
+      {currentProduct === 'TUG' && (
+        <CollapsibleSection title={t('shipmentForm.tugData') || 'Create Tug Schedule'} badge={t('shipmentForm.tugBadge') || 'SCM Tug Service'}>
+          <InfoStrip variant="info" icon="ℹ️">
+            {t('shipmentForm.tugInfo') || 'Configure tug service schedule. Fields marked with * are required. GRT and LOA are auto-filled from vessel master.'}
+          </InfoStrip>
+
+          {/* Row 1: Agent/Owner, Site */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3 mb-3">
+            <FormField label={t('tug.form.agent') || 'Agent / Owner'} type="select" value={tugData.agent} onChange={v => setTugData(d => ({ ...d, agent: v }))} required
+              options={TUG_AGENT_OPTIONS} placeholder="— Select Agent —" />
+            <FormField label={t('tug.form.site') || 'Site'} type="select" value={tugData.site} onChange={v => setTugData(d => ({ ...d, site: v }))} required
+              options={TUG_SITE_OPTIONS} />
+          </div>
+
+          {/* Row 2: Vessel, Port */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
+            <div>
+              <label className="block text-xs font-medium text-text-sec mb-1.5"><span className="text-error">*</span> {t('tug.form.vessel') || 'เรือสินค้า Vessel'}</label>
+              <select value={tugData.vessel} onChange={e => handleVesselChange(e.target.value)}
+                className="w-full border border-border rounded-md px-3 py-2 text-table text-text focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary">
+                <option value="">-- Select --</option>
+                {TUG_VESSEL_OPTIONS.map(v => <option key={v.value} value={v.value}>{v.label}</option>)}
+              </select>
+            </div>
+            <FormField label={t('tug.form.port') || 'Port'} type="select" value={tugData.port} onChange={v => setTugData(d => ({ ...d, port: v }))} required
+              options={TUG_PORT_OPTIONS} />
+          </div>
+
+          {/* Row 3: GRT, LOA, Draf */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
+            <FormField label="GRT" value={tugData.grt} disabled placeholder="Auto from vessel" />
+            <FormField label="LOA" value={tugData.loa ? `${tugData.loa} m` : ''} disabled placeholder="Auto from vessel" />
+            <FormField label={t('tug.form.draf') || 'Draf'} type="number" value={tugData.draf} onChange={v => setTugData(d => ({ ...d, draf: v }))} placeholder="Meter" />
+          </div>
+
+          {/* Row 4: Job Type, Scope */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
+            <FormField label={t('tug.form.jobType') || 'Job Type'} type="select" value={tugData.jobType} onChange={v => setTugData(d => ({ ...d, jobType: v }))} required
+              options={TUG_JOB_TYPE_OPTIONS} />
+            <FormField label={t('tug.form.scope') || 'Scope'} type="select" value={tugData.scope} onChange={v => setTugData(d => ({ ...d, scope: v }))} required
+              options={TUG_SCOPE_OPTIONS} />
+          </div>
+
+          {/* Row 5: Work Date & Time, Activity Operation */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
+            <FormField label={t('tug.form.workDateTime') || 'Work Date & Time'} type="datetime-local" value={tugData.workDateTime} onChange={v => setTugData(d => ({ ...d, workDateTime: v }))} required />
+            <FormField label={t('tug.form.activityOperation') || 'Activity Operation'} type="select" value={tugData.activityOperation} onChange={v => setTugData(d => ({ ...d, activityOperation: v }))} required
+              options={TUG_ACTIVITY_OPTIONS} />
+          </div>
+
+          {/* Row 6: Service, Pilot/Master */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
+            <FormField label={t('tug.form.service') || 'Service'} type="select" value={tugData.service} onChange={v => setTugData(d => ({ ...d, service: v }))} required
+              options={TUG_SERVICE_OPTIONS} />
+            <FormField label={t('tug.form.pilotMaster') || 'Pilot / Master'} value={tugData.pilotMaster} onChange={v => setTugData(d => ({ ...d, pilotMaster: v }))} placeholder="Free text" />
+          </div>
+
+          {/* Sales BOM Items */}
+          <div className="mt-4">
+            <h4 className="text-table font-semibold text-teal-700 mb-2">Sales BOM Items — Tug Assignment</h4>
+            <div className="overflow-x-auto border border-border-light rounded">
+              <table className="w-full text-xs">
+                <thead><tr className="bg-gray-50 border-b border-border">
+                  <th className="px-3 py-2 text-left w-8">#</th>
+                  <th className="px-3 py-2 text-left">Item</th>
+                  <th className="px-3 py-2 text-left">Description</th>
+                  <th className="px-3 py-2 text-left">Unit</th>
+                  <th className="px-3 py-2 text-left">Tug Boat</th>
+                  <th className="px-3 py-2 text-left">WBS</th>
+                  <th className="px-3 py-2 w-12"></th>
+                </tr></thead>
+                <tbody>
+                  {tugData.salesBomItems.map((bom, i) => (
+                    <tr key={bom.id} className="border-b border-border-light">
+                      <td className="px-3 py-2 text-center font-semibold">{i + 1}</td>
+                      <td className="px-3 py-2 font-mono font-semibold text-primary">{bom.item}</td>
+                      <td className="px-3 py-2">{bom.description}</td>
+                      <td className="px-3 py-2">{bom.unit}</td>
+                      <td className="px-3 py-2">
+                        <input type="text" value={bom.tugBoat} onChange={e => setTugData(d => ({ ...d, salesBomItems: d.salesBomItems.map((b, bi) => bi === i ? { ...b, tugBoat: e.target.value } : b) }))}
+                          placeholder="Not assigned" className="border border-border rounded px-2 py-1 text-xs w-28 text-orange-500" />
+                      </td>
+                      <td className="px-3 py-2">
+                        <input type="text" value={bom.wbs} onChange={e => setTugData(d => ({ ...d, salesBomItems: d.salesBomItems.map((b, bi) => bi === i ? { ...b, wbs: e.target.value } : b) }))}
+                          placeholder="—" className="border border-border rounded px-2 py-1 text-xs w-24" />
+                      </td>
+                      <td className="px-3 py-2">
+                        {tugData.salesBomItems.length > 1 && (
+                          <button onClick={() => setTugData(d => ({ ...d, salesBomItems: d.salesBomItems.filter((_, bi) => bi !== i) }))}
+                            className="text-error hover:text-red-700 text-xs">&times;</button>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <button onClick={() => setTugData(d => ({ ...d, salesBomItems: [...d.salesBomItems, { id: Date.now(), item: '', description: '', unit: 'Trip', tugBoat: '', wbs: '' }] }))}
+              className="mt-2 px-3 py-1 rounded border border-border text-table text-text-sec hover:bg-bg text-xs">
+              + Add BOM Item
+            </button>
+          </div>
         </CollapsibleSection>
       )}
 
